@@ -1,0 +1,25 @@
+[build]
+  publish = "."
+
+# 反向代理API请求 - 修复语法
+[[redirects]]
+  from = "/api/*"
+  to = "http://124.223.222.214:3000/api/:splat"
+  status = 200
+  force = true
+
+# 为API路径添加CORS头
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Max-Age = "86400"
+
+# 处理OPTIONS预检请求
+[[redirects]]
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 200
+  conditions = {Method = "OPTIONS"}

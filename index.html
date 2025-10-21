@@ -1,0 +1,2503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园安全风险地图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e5799 0%, #207cca 100%);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .map-container {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            background: #f0f0f0;
+            position: relative;
+            overflow: auto;
+        }
+        
+        
+        .map-placeholder {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+        
+        .map-placeholder h3 {
+            margin-bottom: 20px;
+            color: #1e5799;
+        }
+        
+        .upload-btn {
+            background: #1e5799;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px;
+        }
+        
+        .upload-btn:hover {
+            background: #16437e;
+        }
+        
+        .info-panel {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #1e5799;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 10px;
+        }
+        
+        .instructions {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            color: #1e5799;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #1e5799;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #16437e;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .risk-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .risk-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .risk-item:hover {
+            background: #f0f7ff;
+        }
+        
+        .risk-title {
+            font-weight: bold;
+            color: #1e5799;
+        }
+        
+        .risk-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .high-risk {
+            background: #ffebee;
+            color: #e53935;
+        }
+        
+        .medium-risk {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        
+        .low-risk {
+            background: #e8f5e9;
+            color: #43a047;
+        }
+        
+        
+        
+        .admin-controls {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 999;
+            display: none; /* 默认隐藏管理员按钮 */
+        }
+        
+        .mode-switch {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .mode-switch:hover {
+            background: #218838;
+        }
+        
+        .mode-switch.admin {
+            background: #dc3545;
+        }
+        
+        .mode-switch.admin:hover {
+            background: #c82333;
+        }
+        
+        .admin-only {
+            display: none;
+        }
+        
+        .admin-mode .admin-only {
+            display: block;
+        }
+        
+        .viewer-mode .admin-only {
+            display: none !important;
+        }
+        
+        .risk-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+        }
+        
+        .risk-marker.high {
+            background-color: #e53935;
+            box-shadow: 0 0 10px rgba(229, 57, 53, 0.7);
+        }
+        
+        .risk-marker.medium {
+            background-color: #ff9800;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.7);
+        }
+        
+        .risk-marker.low {
+            background-color: #43a047;
+            box-shadow: 0 0 10px rgba(67, 160, 71, 0.7);
+        }
+        
+        .risk-marker.selected {
+            width: 28px;
+            height: 28px;
+            border: 4px solid #1e5799;
+            box-shadow: 0 0 20px rgba(30, 87, 153, 1);
+            z-index: 1000;
+        }
+        
+        .risk-tooltip {
+            position: fixed;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 10000;
+            min-width: 320px;
+            max-width: 400px;
+            display: none;
+            border: 2px solid #e0e0e0;
+            overflow: hidden; /* 防止内容超出卡片 */
+        }
+        
+        .risk-tooltip h4 {
+            margin: 0 0 15px 0;
+            color: #1e5799;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .tooltip-row {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .tooltip-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 90px;
+            font-size: 14px;
+        }
+        
+        .tooltip-value {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.6;
+            flex: 1;
+        }
+        
+        .risk-tooltip .risk-level {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .tooltip-image {
+            margin-top: 15px;
+            /* 基础尺寸：150px x 120px，但限制最大尺寸以适应卡片 */
+            width: 150px;
+            height: 120px;
+            max-width: calc(100% - 40px); /* 考虑卡片padding */
+            max-height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        /* 多图片容器样式调整 - 横向滚动 */
+        #tooltip-images-container {
+            display: flex;
+            flex-wrap: nowrap; /* 不换行，横向排列 */
+            gap: 8px;
+            margin-top: 0; /* 距离标签很近 */
+            overflow-x: auto; /* 横向滚动 */
+            overflow-y: hidden;
+            padding-bottom: 8px; /* 为滚动条留空间 */
+            max-width: calc(100% - 40px); /* 考虑卡片的padding */
+            width: 100%; /* 占满可用宽度 */
+            /* 自定义滚动条样式 */
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+        
+        #tooltip-images-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        #tooltip-images-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        #tooltip-images-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        #tooltip-images-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+        
+        /* 多图片时的样式调整 */
+        #tooltip-images-container .tooltip-image {
+            margin: 2px;
+            flex-shrink: 0; /* 防止图片被压缩 */
+            max-width: 150px; /* 限制最大宽度，确保不会超出容器 */
+            max-height: 120px;
+        }
+        
+        .tooltip-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        /* 图片放大查看模态框 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 20000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .image-modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .image-modal-close:hover {
+            color: #bbb;
+        }
+        
+        #image-preview img {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .map-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        
+        #markers-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .risk-marker {
+            pointer-events: auto;
+        }
+        
+        .map-container {
+            cursor: grab;
+        }
+        
+        .map-container.dragging {
+            cursor: grabbing;
+        }
+        
+        /* 背景音乐控制样式 */
+        .music-controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 25px;
+            padding: 8px 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .music-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .music-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .music-volume {
+            width: 80px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .music-volume::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        /* 多图片预览样式 */
+        .image-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .preview-image {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #ddd;
+        }
+        
+        .preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .preview-image .remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    
+    <!-- 引入 axios - 多个备用CDN -->
+    <script>
+        // 首先检查axios是否已经加载
+        if (typeof axios === 'undefined') {
+            // 创建多个备用CDN的加载函数
+            function loadAxiosFromCDN() {
+                const cdnList = [
+                    'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
+                    'https://unpkg.com/axios/dist/axios.min.js',
+                    'https://cdn.skypack.dev/axios/dist/axios.min.js'
+                ];
+                
+                let currentIndex = 0;
+                
+                function tryLoadCDN() {
+                    if (currentIndex >= cdnList.length) {
+                        console.error('所有CDN都无法加载axios，将使用fetch作为备用方案');
+                        // 如果所有CDN都失败，我们将在代码中使用fetch替代
+                        window.axios = {
+                            request: async function(config) {
+                                try {
+                                    const response = await fetch(config.url, {
+                                        method: config.method || 'GET',
+                                        headers: config.headers || {},
+                                        body: config.data ? JSON.stringify(config.data) : undefined
+                                    });
+                                    
+                                    if (!response.ok) {
+                                        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
+                                        error.response = {
+                                            status: response.status,
+                                            statusText: response.statusText
+                                        };
+                                        throw error;
+                                    }
+                                    
+                                    let data;
+                                    try {
+                                        data = await response.json();
+                                    } catch (e) {
+                                        data = await response.text();
+                                    }
+                                    
+                                    return { data: data };
+                                } catch (error) {
+                                    if (!error.response) {
+                                        error.request = true;
+                                    }
+                                    throw error;
+                                }
+                            }
+                        };
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = cdnList[currentIndex];
+                    script.onload = function() {
+                        console.log(`✅ 成功从CDN加载axios: ${cdnList[currentIndex]}`);
+                    };
+                    script.onerror = function() {
+                        console.warn(`❌ CDN加载失败: ${cdnList[currentIndex]}`);
+                        currentIndex++;
+                        tryLoadCDN();
+                    };
+                    document.head.appendChild(script);
+                }
+                
+                tryLoadCDN();
+            }
+            
+            // 立即尝试加载
+            loadAxiosFromCDN();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container viewer-mode" id="app-container">
+        
+        
+        <!-- 背景音乐控制 -->
+        <div class="music-controls">
+            <button class="music-toggle" id="music-toggle">🎵</button>
+            <input type="range" class="music-volume" id="music-volume" min="0" max="100" value="30">
+            <audio id="background-music" loop></audio>
+        </div>
+        
+        <div class="admin-controls">
+            <button class="mode-switch" id="mode-switch">管理员模式</button>
+        </div>
+        
+        <div class="map-container">
+            <div id="map">
+                <img id="map-image" class="map-image" src="杨园中学平面图plus.jpg" alt="校园地图">
+                <div id="markers-container"></div>
+                <div id="tooltip" class="risk-tooltip"></div>
+            </div>
+        </div>
+        
+        <div class="info-panel" id="info-panel">
+            <div class="panel-content">
+                <h2 class="panel-title">数字生存指南</h2>
+                
+                <div class="instructions admin-only">
+                    <h3>管理员使用说明</h3>
+                    <ul>
+                        <li>点击右上角"管理员模式"按钮进入编辑界面</li>
+                        <li>填写风险类型、地点名称和安全隐患</li>
+                        <li>点击地图位置直接生成标记</li>
+                        <li>点击已有标记可查看和编辑信息</li>
+                        <li>点击"删除标记"删除选中的标记</li>
+                        <li>点击"保存所有标记"将数据保存到文件</li>
+                    </ul>
+                </div>
+                
+                <div class="instructions viewer-mode">
+                    <h3>查看说明</h3>
+                    <ul>
+                        <li>点击标记点查看风险信息</li>
+                        <li>点击信息卡片中的图片可放大查看</li>
+                        <li>点击卡片外区域关闭信息卡片</li>
+                    </ul>
+                </div>
+                
+                <div class="admin-only">
+                    <div class="form-group">
+                        <label for="risk-type">风险类型</label>
+                        <select id="risk-type">
+                            <option value="high">高风险</option>
+                            <option value="medium">中风险</option>
+                            <option value="low">低风险</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk-title">地点名称</label>
+                        <input type="text" id="risk-title" placeholder="例如：教学楼A座">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk-data">数据描述（选填）</label>
+                        <textarea id="risk-data" placeholder="例如：&#10;楼高：21.8米&#10;宽度：15米&#10;层高：3.5米" style="height: 80px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk-description">安全隐患</label>
+                        <textarea id="risk-description" placeholder="详细描述安全隐患..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk-image">实景图片（选填，最多5张）</label>
+                        <input type="file" id="risk-image" accept="image/*" multiple style="padding: 5px;">
+                        <div id="image-preview" class="image-preview-container" style="margin-top: 10px; max-width: 100%;"></div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="update-marker-btn" class="btn" style="display: none;">更新标记</button>
+                        <button id="clear-btn" class="btn btn-danger">删除标记</button>
+                    </div>
+                    
+                    <div class="btn-group" style="margin-top: 10px;">
+                        <button id="save-all-btn" class="btn" style="background: #28a745;">保存所有标记</button>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding: 10px; background: #f0f7ff; border-radius: 5px; font-size: 12px;">
+                        <strong>💡 提示：</strong>数据会自动保存到数据库。点击"保存所有标记"可以手动保存所有标记到服务器，多用户共享数据。
+                    </div>
+                </div>
+                
+                <div class="risk-list">
+                    <h3>已标记的风险点</h3>
+                    <div id="risk-items">
+                        <!-- 风险点列表将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图片放大查看模态框 -->
+    <div id="image-modal" class="image-modal">
+        <span class="image-modal-close" id="modal-close">&times;</span>
+        <img id="modal-image" class="image-modal-content" alt="放大图片">
+    </div>
+
+    <script>
+        // 全局变量
+        let riskPoints = [];
+        let selectedMarker = null;
+        let isAdminMode = false;
+        let mapImage = null;
+        let mapContainer = null;
+        let markersContainer = null;
+        let tooltip = null;
+        let pendingMarkerPosition = null; // 待添加标记的位置
+        let selectedImages = []; // 存储选中的图片数据
+        
+        // 地图交互相关变量
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let scrollLeft = 0;
+        let scrollTop = 0;
+        
+        // API 配置
+        const API_CONFIG = {
+            // 智能API地址选择
+            baseUrl: (function() {
+                const isHttps = window.location.protocol === 'https:';
+                const isNetlify = window.location.hostname.includes('netlify');
+                const serverHost = '124.223.222.214:3000';
+                
+                // 如果是Netlify环境，尝试使用相对路径（通过代理）
+                if (isNetlify) {
+                    // 在Netlify上，我们可以配置代理来转发API请求
+                    return '/api';
+                } else if (isHttps) {
+                    // 其他HTTPS环境，尝试HTTPS
+                    return `https://${serverHost}/api`;
+                } else {
+                    // HTTP环境使用HTTP
+                    return `http://${serverHost}/api`;
+                }
+            })(),
+            timeout: 10000, // 10秒超时
+            // 添加备用URL配置，用于回退
+            fallbackUrls: [
+                '/api',  // Netlify代理路径
+                'http://124.223.222.214:3000/api',  // 原始HTTP地址
+                'https://124.223.222.214:3000/api'  // HTTPS地址（如果服务器支持）
+            ]
+        };
+        
+        // 风险类型配置
+        const riskTypes = {
+            high: { name: '高风险', color: '#e53935', className: 'high-risk' },
+            medium: { name: '中风险', color: '#ff9800', className: 'medium-risk' },
+            low: { name: '低风险', color: '#43a047', className: 'low-risk' }
+        };
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            mapContainer = document.getElementById('map');
+            markersContainer = document.getElementById('markers-container');
+            tooltip = document.getElementById('tooltip');
+            mapImage = document.getElementById('map-image');
+            
+            try {
+                await initializeApp();
+            } catch (error) {
+                console.error('应用初始化失败:', error);
+            }
+        });
+        
+        // 初始化应用
+        async function initializeApp() {
+            setupEventListeners();
+            updateModeDisplay();
+            enableAdminAccess(); // 启用管理员访问功能
+            
+            // 确保axios加载完成后再加载数据
+            try {
+                await ensureAxiosAvailable();
+                console.log('✅ axios已准备就绪，开始加载数据');
+            } catch (error) {
+                console.warn('⚠️ axios加载可能有问题，但仍会尝试加载数据:', error);
+            }
+            
+            // 加载数据（无论axios是否可用都会尝试）
+            loadData();
+        }
+        
+        // 启用管理员访问（通过按键或控制台命令）
+        function enableAdminAccess() {
+            // 方法1: 连续按3次Shift键显示管理员按钮
+            let shiftPressCount = 0;
+            let shiftTimer = null;
+            
+            // 方法2: 连续按3次Ctrl键隐藏管理员按钮
+            let ctrlPressCount = 0;
+            let ctrlTimer = null;
+            
+            document.addEventListener('keydown', function(e) {
+                // Shift键 - 显示管理员按钮
+                if (e.key === 'Shift') {
+                    shiftPressCount++;
+                    
+                    if (shiftPressCount === 3) {
+                        document.querySelector('.admin-controls').style.display = 'block';
+                        console.log('✅ 管理员模式已启用');
+                        shiftPressCount = 0;
+                    }
+                    
+                    clearTimeout(shiftTimer);
+                    shiftTimer = setTimeout(() => {
+                        shiftPressCount = 0;
+                    }, 1000);
+                }
+                
+                // Ctrl键 - 隐藏管理员按钮
+                if (e.key === 'Control') {
+                    ctrlPressCount++;
+                    
+                    if (ctrlPressCount === 3) {
+                        const adminControls = document.querySelector('.admin-controls');
+                        adminControls.style.display = 'none';
+                        
+                        // 如果正在管理员模式，退出
+                        if (isAdminMode) {
+                            toggleAdminMode();
+                        }
+                        
+                        console.log('🔒 管理员模式已隐藏');
+                        ctrlPressCount = 0;
+                    }
+                    
+                    clearTimeout(ctrlTimer);
+                    ctrlTimer = setTimeout(() => {
+                        ctrlPressCount = 0;
+                    }, 1000);
+                }
+            });
+            
+            // 方法3: 在控制台输入命令
+            window.showAdmin = function() {
+                document.querySelector('.admin-controls').style.display = 'block';
+                console.log('✅ 管理员模式已启用');
+            };
+            
+            window.hideAdmin = function() {
+                const adminControls = document.querySelector('.admin-controls');
+                adminControls.style.display = 'none';
+                if (isAdminMode) {
+                    toggleAdminMode();
+                }
+                console.log('🔒 管理员模式已隐藏');
+            };
+            
+            console.log('💡 提示:');
+            console.log('   - 连续按3次 Shift 键 → 显示管理员按钮');
+            console.log('   - 连续按3次 Ctrl 键 → 隐藏管理员按钮');
+            console.log('   - 或使用命令: showAdmin() / hideAdmin()');
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 模式切换
+            document.getElementById('mode-switch').addEventListener('click', toggleAdminMode);
+            
+            // 地图点击
+            mapContainer.addEventListener('click', handleMapClick);
+            
+            // 点击页面其他地方关闭tooltip
+            document.addEventListener('click', function(e) {
+                const tooltip = document.getElementById('tooltip');
+                // 如果点击的不是tooltip内部，则关闭tooltip
+                if (!tooltip.contains(e.target) && tooltip.style.display === 'block') {
+                    hideTooltip();
+                }
+            });
+            
+            // 按钮事件
+            document.getElementById('update-marker-btn').addEventListener('click', updateMarker);
+            document.getElementById('clear-btn').addEventListener('click', deleteRiskPoint);
+            document.getElementById('save-all-btn').addEventListener('click', saveAllMarkers);
+            
+            // 风险类型变化时更新临时标记颜色
+            document.getElementById('risk-type').addEventListener('change', function() {
+                if (selectedMarker && selectedMarker.dataset.temp === 'true') {
+                    const newType = this.value;
+                    selectedMarker.className = `risk-marker ${newType} selected`;
+                    selectedMarker.dataset.type = newType;
+                    console.log('临时标记颜色已更新为:', newType);
+                }
+            });
+            
+            // 背景音乐控制
+            const musicToggle = document.getElementById('music-toggle');
+            const musicVolume = document.getElementById('music-volume');
+            const backgroundMusic = document.getElementById('background-music');
+            let isMusicPlaying = false;
+            let audioContext = null;
+            let backgroundSound = null;
+            
+            // 初始化背景音乐
+            function initBackgroundMusic() {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // 创建一个简单的环境音效
+                    function createTone(frequency, duration, delay = 0) {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + delay);
+                        oscillator.type = 'sine';
+                        
+                        gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay);
+                        gainNode.gain.linearRampToValueAtTime(0.05, audioContext.currentTime + delay + 0.1);
+                        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + delay + duration);
+                        
+                        oscillator.start(audioContext.currentTime + delay);
+                        oscillator.stop(audioContext.currentTime + delay + duration);
+                    }
+                    
+                    // 创建一个循环的背景音效
+                    function playBackgroundLoop() {
+                        if (!isMusicPlaying) return;
+                        
+                        // 播放简单的和音
+                        createTone(220, 2, 0);    // A3
+                        createTone(277, 2, 0.5);  // C#4
+                        createTone(330, 2, 1);    // E4
+                        createTone(440, 2, 1.5);  // A4
+                        
+                        // 8秒后重复
+                        setTimeout(playBackgroundLoop, 8000);
+                    }
+                    
+                    backgroundSound = { playBackgroundLoop };
+                    
+                } catch (error) {
+                    console.log('Web Audio API不支持，背景音乐将不可用');
+                }
+            }
+            
+            backgroundMusic.volume = 0.3;
+            
+            musicToggle.addEventListener('click', function() {
+                if (isMusicPlaying) {
+                    // 停止音乐
+                    if (audioContext) {
+                        audioContext.suspend();
+                    }
+                    musicToggle.textContent = '🎵';
+                    isMusicPlaying = false;
+                } else {
+                    // 开始音乐
+                    if (!audioContext) {
+                        initBackgroundMusic();
+                    }
+                    
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    musicToggle.textContent = '🔇';
+                    isMusicPlaying = true;
+                    
+                    // 开始播放循环音效
+                    if (backgroundSound) {
+                        backgroundSound.playBackgroundLoop();
+                    }
+                }
+            });
+            
+            musicVolume.addEventListener('input', function() {
+                const volume = this.value / 100;
+                backgroundMusic.volume = volume;
+                
+                // 如果使用Web Audio API，也调整全局音量
+                if (audioContext && audioContext.destination) {
+                    // Web Audio API的音频上下文音量调整
+                    audioContext.destination.volume = volume;
+                }
+            });
+            
+            // 多图片上传预览
+            
+            document.getElementById('risk-image').addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                const preview = document.getElementById('image-preview');
+                
+                // 限制最多5张图片
+                if (selectedImages.length + files.length > 5) {
+                    alert('最多只能上传5张图片！');
+                    return;
+                }
+                
+                files.forEach((file, index) => {
+                    if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            selectedImages.push({
+                                data: e.target.result,
+                                file: file,
+                                id: Date.now() + index
+                            });
+                            updateImagePreview();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+                
+                // 清空input，允许重新选择相同文件
+                e.target.value = '';
+            });
+            
+            
+            // 地图拖拽
+            mapContainer.addEventListener('mousedown', handleMapMouseDown);
+            document.addEventListener('mousemove', handleMapMouseMove);
+            document.addEventListener('mouseup', handleMapMouseUp);
+            
+            // 图片放大查看模态框
+            const modal = document.getElementById('image-modal');
+            const modalClose = document.getElementById('modal-close');
+            
+            modalClose.addEventListener('click', function(e) {
+                e.stopPropagation(); // 阻止冒泡，避免触发关闭tooltip
+                modal.style.display = 'none';
+            });
+            
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    e.stopPropagation(); // 阻止冒泡，避免触发关闭tooltip
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // ESC键关闭模态框（只关闭图片放大，不关闭tooltip）
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.style.display === 'flex') {
+                    e.stopPropagation(); // 阻止冒泡
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // 窗口大小改变时更新标记位置
+            window.addEventListener('resize', function() {
+                // 使用防抖来避免频繁调用
+                clearTimeout(window.resizeTimeout);
+                window.resizeTimeout = setTimeout(function() {
+                    updateAllMarkerPositions();
+                    console.log('窗口大小改变，已更新所有标记位置');
+                }, 100);
+            });
+            
+            // 图片加载完成后更新标记位置
+            mapImage.addEventListener('load', function() {
+                setTimeout(function() {
+                    updateAllMarkerPositions();
+                    console.log('图片加载完成，已更新所有标记位置');
+                }, 100);
+            });
+            
+        }
+        
+        // 切换管理员模式
+        function toggleAdminMode() {
+            isAdminMode = !isAdminMode;
+            const container = document.getElementById('app-container');
+            const modeBtn = document.getElementById('mode-switch');
+            
+            if (isAdminMode) {
+                container.classList.remove('viewer-mode');
+                container.classList.add('admin-mode');
+                modeBtn.textContent = '查看者模式';
+                modeBtn.classList.add('admin');
+                mapContainer.style.cursor = 'crosshair';
+            } else {
+                container.classList.remove('admin-mode');
+                container.classList.add('viewer-mode');
+                modeBtn.textContent = '管理员模式';
+                modeBtn.classList.remove('admin');
+                mapContainer.style.cursor = 'grab';
+                
+                // 清除选择
+                if (selectedMarker) {
+                    selectedMarker.classList.remove('selected');
+                    selectedMarker = null;
+                }
+                
+                // 清除表单
+                document.getElementById('risk-title').value = '';
+                document.getElementById('risk-description').value = '';
+            }
+            
+            updateModeDisplay();
+        }
+        
+        // 更新模式显示
+        function updateModeDisplay() {
+            const container = document.getElementById('app-container');
+            if (isAdminMode) {
+                container.classList.remove('viewer-mode');
+                container.classList.add('admin-mode');
+            } else {
+                container.classList.remove('admin-mode');
+                container.classList.add('viewer-mode');
+            }
+        }
+        
+        // 地图拖拽开始
+        function handleMapMouseDown(event) {
+            // 只在非编辑模式或者点击的不是标记时才启用拖拽
+            if (event.target === mapImage || event.target === mapContainer) {
+                isDragging = true;
+                mapContainer.classList.add('dragging');
+                dragStartX = event.clientX;
+                dragStartY = event.clientY;
+                scrollLeft = mapContainer.scrollLeft;
+                scrollTop = mapContainer.scrollTop;
+                event.preventDefault();
+            }
+        }
+        
+        // 地图拖拽移动
+        function handleMapMouseMove(event) {
+            if (isDragging) {
+                const deltaX = event.clientX - dragStartX;
+                const deltaY = event.clientY - dragStartY;
+                
+                mapContainer.scrollLeft = scrollLeft - deltaX;
+                mapContainer.scrollTop = scrollTop - deltaY;
+            }
+        }
+        
+        // 地图拖拽结束
+        function handleMapMouseUp(event) {
+            if (isDragging) {
+                isDragging = false;
+                mapContainer.classList.remove('dragging');
+            }
+        }
+        
+        // 坐标转换函数：从屏幕坐标转换为图片相对坐标（百分比）
+        function screenToImageCoords(screenX, screenY) {
+            const rect = mapImage.getBoundingClientRect();
+            const relativeX = screenX - rect.left;
+            const relativeY = screenY - rect.top;
+            
+            // 转换为图片原始尺寸的百分比坐标
+            const imageNaturalWidth = mapImage.naturalWidth;
+            const imageNaturalHeight = mapImage.naturalHeight;
+            const imageDisplayWidth = rect.width;
+            const imageDisplayHeight = rect.height;
+            
+            // 计算缩放比例
+            const scaleX = imageNaturalWidth / imageDisplayWidth;
+            const scaleY = imageNaturalHeight / imageDisplayHeight;
+            
+            // 转换为原始图片坐标，然后转换为百分比
+            const originalX = relativeX * scaleX;
+            const originalY = relativeY * scaleY;
+            
+            const percentX = (originalX / imageNaturalWidth) * 100;
+            const percentY = (originalY / imageNaturalHeight) * 100;
+            
+            return {
+                percentX: Math.max(0, Math.min(100, percentX)),
+                percentY: Math.max(0, Math.min(100, percentY)),
+                originalX: originalX,
+                originalY: originalY
+            };
+        }
+        
+        // 坐标转换函数：从图片相对坐标（百分比）转换为屏幕坐标
+        function imageToScreenCoords(percentX, percentY) {
+            const rect = mapImage.getBoundingClientRect();
+            const imageNaturalWidth = mapImage.naturalWidth;
+            const imageNaturalHeight = mapImage.naturalHeight;
+            
+            // 从百分比转换为原始图片坐标
+            const originalX = (percentX / 100) * imageNaturalWidth;
+            const originalY = (percentY / 100) * imageNaturalHeight;
+            
+            // 计算缩放比例
+            const scaleX = rect.width / imageNaturalWidth;
+            const scaleY = rect.height / imageNaturalHeight;
+            
+            // 转换为当前显示坐标
+            const screenX = originalX * scaleX;
+            const screenY = originalY * scaleY;
+            
+            return {
+                x: screenX,
+                y: screenY
+            };
+        }
+        
+        // 处理地图点击
+        function handleMapClick(event) {
+            if (!isAdminMode || isDragging) return;
+            
+            // 防止在拖拽时创建标记
+            if (event.target !== mapImage && event.target !== mapContainer) return;
+            
+            // 检查必填字段
+            const title = document.getElementById('risk-title').value.trim();
+            const description = document.getElementById('risk-description').value.trim();
+            const type = document.getElementById('risk-type').value;
+            const data = document.getElementById('risk-data').value.trim();
+            const imageInput = document.getElementById('risk-image');
+            let imageData = null;
+            
+            if (!title || !description) {
+                // 高亮提示必填字段
+                const titleInput = document.getElementById('risk-title');
+                const descInput = document.getElementById('risk-description');
+                
+                if (!title) {
+                    titleInput.style.border = '2px solid #e74c3c';
+                    titleInput.focus();
+                }
+                if (!description) {
+                    descInput.style.border = '2px solid #e74c3c';
+                    if (!title) {
+                        setTimeout(() => descInput.focus(), 100);
+                    } else {
+                        descInput.focus();
+                    }
+                }
+                
+                // 3秒后恢复边框
+                setTimeout(() => {
+                    titleInput.style.border = '';
+                    descInput.style.border = '';
+                }, 3000);
+                
+                alert('请先填写风险点名称和安全隐患！');
+                console.log('未填写必填信息，无法添加标记');
+                return;
+            }
+            
+            // 获取多图片数据
+            const imageDataArray = selectedImages.map(img => img.data);
+            addMarkerWithData();
+            
+            async function addMarkerWithData() {
+                // 使用新的坐标转换系统
+                const coords = screenToImageCoords(event.clientX, event.clientY);
+                
+                // 直接添加标记，存储百分比坐标，传递多图片数据
+                addRiskPoint(coords.percentX, coords.percentY, type, title, description, null, data, imageDataArray);
+            
+                // 清除表单
+                document.getElementById('risk-title').value = '';
+                document.getElementById('risk-description').value = '';
+                document.getElementById('risk-data').value = '';
+                document.getElementById('risk-image').value = '';
+                document.getElementById('image-preview').innerHTML = '';
+                
+                // 清除选中的图片数组
+                selectedImages = [];
+                
+                // 更新风险点列表
+                updateRiskList();
+                
+                // 自动保存数据
+                try {
+                    await saveData();
+                    console.log('标记已添加:', title, '位置:', coords.percentX, coords.percentY);
+                } catch (error) {
+                    console.error('保存数据失败:', error);
+                }
+            }
+        }
+        
+        // 创建临时标记
+        function createTempMarker(percentX, percentY, type = 'high') {
+            // 先清除之前的临时标记
+            const oldTemp = document.querySelector('[data-temp="true"]');
+            if (oldTemp) {
+                oldTemp.remove();
+                console.log('移除旧的临时标记');
+            }
+            
+            const marker = document.createElement('div');
+            marker.className = `risk-marker ${type} selected`;
+            
+            // 将百分比坐标转换为当前屏幕坐标
+            const screenCoords = imageToScreenCoords(percentX, percentY);
+            
+            marker.style.left = screenCoords.x + 'px';
+            marker.style.top = screenCoords.y + 'px';
+            marker.dataset.temp = 'true';
+            marker.dataset.percentX = percentX;
+            marker.dataset.percentY = percentY;
+            marker.dataset.x = percentX; // 保持向后兼容
+            marker.dataset.y = percentY;
+            marker.dataset.type = type;
+            
+            // 临时标记不添加点击事件，不会被添加到riskPoints
+            
+            markersContainer.appendChild(marker);
+            selectedMarker = marker;
+            console.log('创建临时标记，类型:', type, '等待填写信息');
+        }
+        
+        // 添加风险点
+        function addRiskPoint(percentX, percentY, type, title, description, id = null, data = '', imageData = null) {
+            // 处理多图片数据：如果是数组则保持，如果是单个数据则转换为数组
+            let imageDataArray = [];
+            if (imageData) {
+                if (Array.isArray(imageData)) {
+                    imageDataArray = imageData;
+                } else {
+                    imageDataArray = [imageData];
+                }
+            }
+            const marker = document.createElement('div');
+            marker.className = `risk-marker ${type}`;
+            
+            // 将百分比坐标转换为当前屏幕坐标用于显示
+            const screenCoords = imageToScreenCoords(percentX, percentY);
+            
+            marker.style.left = screenCoords.x + 'px';
+            marker.style.top = screenCoords.y + 'px';
+            marker.dataset.id = id || Date.now() + Math.random();
+            marker.dataset.percentX = percentX; // 存储百分比坐标
+            marker.dataset.percentY = percentY;
+            marker.dataset.x = percentX; // 保持向后兼容
+            marker.dataset.y = percentY;
+            
+            // 点击事件
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // console.log('标记被点击，管理员模式:', isAdminMode);
+                if (isAdminMode) {
+                    selectMarker(marker);
+                } else {
+                    // 查看模式下点击显示信息卡片
+                    showTooltip(marker, e);
+                }
+            });
+            
+            markersContainer.appendChild(marker);
+            
+            // 存储风险点数据
+            const riskPoint = {
+                id: id || Date.now() + Math.random(),
+                type: type,
+                title: title,
+                description: description,
+                data: data || '',
+                imageData: imageDataArray, // 存储多图片数组
+                x: percentX, // 存储百分比坐标
+                y: percentY,
+                percentX: percentX, // 明确的百分比坐标字段
+                percentY: percentY,
+                marker: marker
+            };
+            
+            riskPoints.push(riskPoint);
+            return riskPoint;
+        }
+        
+        // 更新所有标记的位置（当窗口大小改变或图片缩放时调用）
+        function updateAllMarkerPositions() {
+            // 更新所有正式标记
+            riskPoints.forEach(riskPoint => {
+                if (riskPoint.marker && riskPoint.percentX !== undefined && riskPoint.percentY !== undefined) {
+                    const screenCoords = imageToScreenCoords(riskPoint.percentX, riskPoint.percentY);
+                    riskPoint.marker.style.left = screenCoords.x + 'px';
+                    riskPoint.marker.style.top = screenCoords.y + 'px';
+                }
+            });
+            
+            // 更新临时标记
+            const tempMarker = document.querySelector('[data-temp="true"]');
+            if (tempMarker && tempMarker.dataset.percentX && tempMarker.dataset.percentY) {
+                const screenCoords = imageToScreenCoords(
+                    parseFloat(tempMarker.dataset.percentX), 
+                    parseFloat(tempMarker.dataset.percentY)
+                );
+                tempMarker.style.left = screenCoords.x + 'px';
+                tempMarker.style.top = screenCoords.y + 'px';
+            }
+        }
+        
+        // 选择标记
+        function selectMarker(marker) {
+            console.log('selectMarker被调用, marker:', marker);
+            
+            // 清除之前的选择
+            if (selectedMarker) {
+                selectedMarker.classList.remove('selected');
+                console.log('清除之前的选择');
+            }
+            
+            // 设置新选择
+            selectedMarker = marker;
+            marker.classList.add('selected');
+            console.log('标记已添加selected类');
+            
+            // 显示更新按钮
+            document.getElementById('update-marker-btn').style.display = 'inline-block';
+            
+            // 填充表单
+            const riskPoint = getRiskPointByMarker(marker);
+            console.log('找到的风险点:', riskPoint);
+            if (riskPoint) {
+                document.getElementById('risk-type').value = riskPoint.type;
+                document.getElementById('risk-title').value = riskPoint.title;
+                document.getElementById('risk-data').value = riskPoint.data || '';
+                document.getElementById('risk-description').value = riskPoint.description;
+                
+                // 显示多图片预览
+                const preview = document.getElementById('image-preview');
+                updateSelectedImagesFromRiskPoint(riskPoint);
+                
+                console.log('表单已填充');
+            }
+        }
+        
+        // 根据标记获取风险点
+        function getRiskPointByMarker(marker) {
+            return riskPoints.find(point => point.marker === marker);
+        }
+        
+        // 全局函数：更新图片预览显示
+        function updateImagePreview() {
+            const preview = document.getElementById('image-preview');
+            console.log('updateImagePreview被调用，preview元素:', preview);
+            console.log('当前selectedImages:', selectedImages);
+            
+            if (!preview) {
+                console.log('未找到image-preview元素');
+                return;
+            }
+            
+            preview.innerHTML = '';
+            
+            selectedImages.forEach((image, index) => {
+                console.log('添加图片预览:', index, image);
+                const imageDiv = document.createElement('div');
+                imageDiv.className = 'preview-image';
+                
+                // 创建图片元素，避免HTML转义问题
+                const img = document.createElement('img');
+                
+                // 验证图片数据是否有效
+                if (image.data && typeof image.data === 'string' && image.data.trim().length > 0) {
+                    const trimmed = image.data.trim();
+                    const isValidImageData = trimmed.startsWith('data:image/') || 
+                                           trimmed.startsWith('data:') || 
+                                           trimmed.startsWith('http://') || 
+                                           trimmed.startsWith('https://') || 
+                                           trimmed.startsWith('blob:') ||
+                                           trimmed.includes('/9j/') || 
+                                           trimmed.includes('iVBORw0KGgo');
+                    
+                    if (isValidImageData) {
+                        img.src = image.data;
+                        console.log('预览设置图片src:', image.data.substring(0, 50) + '...');
+                        
+                        // 添加错误处理，防止加载失败
+                        img.onerror = function() {
+                            console.error('预览图片加载失败，隐藏该图片:', image.data.substring(0, 50) + '...');
+                            img.style.display = 'none';
+                        };
+                    } else {
+                        console.warn('预览：无效的图片数据，跳过设置src:', image.data.substring(0, 50) + '...');
+                        img.style.display = 'none'; // 隐藏无效图片
+                    }
+                } else {
+                    console.warn('预览：空的或无效的图片数据，跳过设置src');
+                    img.style.display = 'none'; // 隐藏无效图片
+                }
+                
+                img.alt = '预览图片';
+                
+                // 创建删除按钮
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.setAttribute('data-image-id', image.id);
+                
+                // 为删除按钮添加事件监听器
+                removeBtn.addEventListener('click', function() {
+                    const imageId = parseInt(this.getAttribute('data-image-id'));
+                    removeImage(imageId);
+                });
+                
+                imageDiv.appendChild(img);
+                imageDiv.appendChild(removeBtn);
+                preview.appendChild(imageDiv);
+            });
+            
+            console.log('图片预览更新完成，共', selectedImages.length, '张图片');
+        }
+        
+        // 全局函数：移除图片
+        window.removeImage = function(imageId) {
+            selectedImages = selectedImages.filter(img => img.id !== imageId);
+            updateImagePreview();
+        };
+        
+        // 从风险点数据更新选中的图片数组
+        function updateSelectedImagesFromRiskPoint(riskPoint) {
+            console.log('updateSelectedImagesFromRiskPoint被调用，riskPoint:', riskPoint);
+            selectedImages = [];
+            
+            if (riskPoint.imageData) {
+                console.log('找到图片数据，类型:', typeof riskPoint.imageData, '是否为数组:', Array.isArray(riskPoint.imageData), '原始数据:', riskPoint.imageData);
+                
+                // 先修复可能被多次序列化的数据
+                const fixedImageData = fixSerializedImageData(riskPoint.imageData);
+                console.log('修复后的图片数据:', fixedImageData);
+                
+                let imagesToShow = [];
+                
+                // 处理不同类型的图片数据
+                if (Array.isArray(fixedImageData)) {
+                    console.log('图片数据是数组，长度:', fixedImageData.length);
+                    imagesToShow = fixedImageData;
+                } else if (typeof fixedImageData === 'string') {
+                    console.log('图片数据是字符串，长度:', fixedImageData.length);
+                    // 如果是单个字符串，检查是否是有效的base64或URL
+                    if (fixedImageData.trim().length > 0) {
+                        imagesToShow = [fixedImageData];
+                        console.log('将字符串转换为数组:', imagesToShow);
+                    }
+                }
+                
+                // 过滤有效图片
+                console.log('开始过滤图片，原始数量:', imagesToShow.length);
+                imagesToShow = imagesToShow.filter((img, index) => {
+                    console.log(`过滤图片 ${index}:`, typeof img, img ? img.substring(0, 50) + '...' : 'null');
+                    
+                    if (!img || typeof img !== 'string') {
+                        console.log(`图片 ${index} 被过滤：不是有效字符串`);
+                        return false;
+                    }
+                    
+                    const trimmed = img.trim();
+                    if (trimmed.length === 0) {
+                        console.log(`图片 ${index} 被过滤：空字符串`);
+                        return false;
+                    }
+                    
+                    // 检查各种格式
+                    const isValid = trimmed.startsWith('data:image/') ||  // 标准base64图片
+                                   trimmed.startsWith('data:') ||        // 任何base64数据
+                                   trimmed.startsWith('http://') ||     // HTTP URL
+                                   trimmed.startsWith('https://') ||    // HTTPS URL
+                                   trimmed.startsWith('blob:') ||       // Blob URL
+                                   trimmed.includes('/9j/') ||          // JPEG base64特征
+                                   trimmed.includes('iVBORw0KGgo');    // PNG base64特征
+                    
+                    console.log(`图片 ${index} 验证结果:`, isValid, '前100字符:', trimmed.substring(0, 100));
+                    return isValid;
+                });
+                
+                console.log('过滤后的图片数量:', imagesToShow.length);
+                console.log('过滤后的图片数据:', imagesToShow);
+                
+                selectedImages = imagesToShow.map((imgData, index) => ({
+                    data: imgData.trim(),
+                    id: Date.now() + index
+                }));
+            } else {
+                console.log('没有找到图片数据');
+            }
+            
+            console.log('更新后的selectedImages:', selectedImages);
+            updateImagePreview();
+        }
+        
+        // 显示提示框
+        function showTooltip(marker, event) {
+            const riskPoint = getRiskPointByMarker(marker);
+            if (!riskPoint) return;
+            
+            const riskType = riskTypes[riskPoint.type];
+            let imagesToShow = []; // 声明在函数作用域
+            
+            let html = `<h4>风险点信息</h4>`;
+            
+            // 地点
+            html += `
+                <div class="tooltip-row">
+                    <div class="tooltip-label">地点：</div>
+                    <div class="tooltip-value">${riskPoint.title}</div>
+                </div>
+            `;
+            
+            // 风险等级
+            html += `
+                <div class="tooltip-row">
+                    <div class="tooltip-label">风险等级：</div>
+                    <div class="tooltip-value">
+                        <span class="risk-level ${riskType.className}">${riskType.name}</span>
+                    </div>
+                </div>
+            `;
+            
+            // 数据描述（如果有）
+            if (riskPoint.data && riskPoint.data.trim()) {
+                html += `
+                    <div class="tooltip-row">
+                        <div class="tooltip-label">数据描述：</div>
+                        <div class="tooltip-value" style="white-space: pre-line;">${riskPoint.data}</div>
+                    </div>
+                `;
+            }
+            
+            // 安全隐患
+            html += `
+                <div class="tooltip-row">
+                    <div class="tooltip-label">安全隐患：</div>
+                    <div class="tooltip-value">${riskPoint.description}</div>
+                </div>
+            `;
+            
+            // 实景图片（支持多张）
+            if (riskPoint.imageData) {
+                // 先修复可能被多次序列化的数据
+                const fixedImageData = fixSerializedImageData(riskPoint.imageData);
+                console.log('showTooltip修复图片数据:', fixedImageData);
+                
+                // 使用与updateSelectedImagesFromRiskPoint相同的过滤逻辑
+                if (Array.isArray(fixedImageData)) {
+                    imagesToShow = fixedImageData;
+                } else if (typeof fixedImageData === 'string') {
+                    if (fixedImageData.trim().length > 0) {
+                        imagesToShow = [fixedImageData];
+                    }
+                }
+                
+                // 过滤有效图片 - 使用与updateSelectedImagesFromRiskPoint相同的宽松验证
+                imagesToShow = imagesToShow.filter(img => {
+                    if (!img || typeof img !== 'string') return false;
+                    const trimmed = img.trim();
+                    if (trimmed.length === 0) return false;
+                    
+                    // 更宽松的验证：支持多种图片格式
+                    return trimmed.startsWith('data:image/') ||  // 标准base64图片
+                           trimmed.startsWith('data:') ||        // 任何base64数据
+                           trimmed.startsWith('http://') ||     // HTTP URL
+                           trimmed.startsWith('https://') ||    // HTTPS URL
+                           trimmed.startsWith('blob:') ||       // Blob URL
+                           trimmed.includes('/9j/') ||          // JPEG base64特征
+                           trimmed.includes('iVBORw0KGgo');    // PNG base64特征
+                });
+                
+                if (imagesToShow.length > 0) {
+                    if (imagesToShow.length === 1) {
+                        // 单张图片直接显示，但要确保不超出卡片
+                        html += `<img src="" alt="实景图片" class="tooltip-image" data-image-src="">`;
+                    } else {
+                        // 多张图片使用滚动容器
+                        html += `<div class="tooltip-label" style="margin-bottom: 10px; margin-top: 15px;">实景图片 (${imagesToShow.length}张)：</div>`;
+                        html += `<div id="tooltip-images-container">`;
+                        imagesToShow.forEach((imgSrc, index) => {
+                            html += `<img src="" alt="实景图片${index + 1}" class="tooltip-image" data-image-src="">`;
+                        });
+                        html += `</div>`;
+                    }
+                }
+            }
+            
+            tooltip.innerHTML = html;
+            
+            // 为图片设置src和data-image-src属性，避免HTML转义问题
+            const tooltipImages = tooltip.querySelectorAll('.tooltip-image');
+            tooltipImages.forEach((img, index) => {
+                if (imagesToShow && imagesToShow[index]) {
+                    const imageData = imagesToShow[index];
+                    // 验证图片数据是否有效
+                    if (imageData && typeof imageData === 'string' && imageData.trim().length > 0) {
+                        // 进一步验证图片数据格式
+                        const trimmed = imageData.trim();
+                        const isValidImageData = trimmed.startsWith('data:image/') || 
+                                               trimmed.startsWith('data:') || 
+                                               trimmed.startsWith('http://') || 
+                                               trimmed.startsWith('https://') || 
+                                               trimmed.startsWith('blob:') ||
+                                               trimmed.includes('/9j/') || 
+                                               trimmed.includes('iVBORw0KGgo');
+                        
+                        if (isValidImageData) {
+                            img.src = imageData;
+                            img.setAttribute('data-image-src', imageData);
+                            console.log('设置图片src:', imageData.substring(0, 50) + '...');
+                            
+                            // 添加错误处理，防止加载失败
+                            img.onerror = function() {
+                                console.error('图片加载失败，隐藏该图片:', imageData.substring(0, 50) + '...');
+                                img.style.display = 'none';
+                            };
+                        } else {
+                            console.warn('无效的图片数据，跳过设置src:', imageData.substring(0, 50) + '...');
+                            img.style.display = 'none'; // 隐藏无效图片
+                        }
+                    } else {
+                        console.warn('空的或无效的图片数据，跳过设置src');
+                        img.style.display = 'none'; // 隐藏无效图片
+                    }
+                }
+            });
+            
+            // 为图片添加点击事件和响应式尺寸调整
+            tooltipImages.forEach(img => {
+                img.addEventListener('click', function() {
+                    const imageSrc = this.getAttribute('data-image-src');
+                    showImageModal(imageSrc);
+                });
+                
+                // 类似rpx的响应式调整：基于屏幕宽度，但限制在卡片内
+                function adjustImageSize() {
+                    const screenWidth = window.innerWidth;
+                    // 获取卡片容器，用于计算最大允许宽度
+                    const tooltipContainer = img.closest('.risk-tooltip');
+                    const containerMaxWidth = tooltipContainer ? tooltipContainer.clientWidth - 40 : 360; // 减去padding
+                    
+                    // 假设设计稿基于750px宽度，类似小程序rpx
+                    const rpxRatio = screenWidth / 750;
+                    const baseWidth = 150;
+                    const baseHeight = 120;
+                    
+                    // 计算理想尺寸
+                    let idealWidth = baseWidth * rpxRatio;
+                    let idealHeight = baseHeight * rpxRatio;
+                    
+                    // 确保图片不会超出卡片宽度
+                    if (idealWidth > containerMaxWidth) {
+                        const scaleFactor = containerMaxWidth / idealWidth;
+                        idealWidth = containerMaxWidth;
+                        idealHeight = idealHeight * scaleFactor;
+                    }
+                    
+                    // 应用计算后的尺寸
+                    img.style.width = `${Math.min(idealWidth, 150)}px`; // 最大不超过150px
+                    img.style.height = `${Math.min(idealHeight, 120)}px`; // 最大不超过120px
+                }
+                
+                // 初始调整和窗口大小变化时调整
+                adjustImageSize();
+                window.addEventListener('resize', adjustImageSize);
+            });
+            
+            tooltip.style.left = event.clientX + 15 + 'px';
+            tooltip.style.top = event.clientY - 15 + 'px';
+            tooltip.style.display = 'block';
+            
+            // 阻止tooltip内部点击事件冒泡
+            tooltip.onclick = function(e) {
+                e.stopPropagation();
+            };
+        }
+        
+        // 显示图片放大模态框
+        function showImageModal(imageSrc) {
+            const modal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            
+            // 验证图片数据是否有效
+            if (imageSrc && typeof imageSrc === 'string' && imageSrc.trim().length > 0) {
+                const trimmed = imageSrc.trim();
+                const isValidImageData = trimmed.startsWith('data:image/') || 
+                                       trimmed.startsWith('data:') || 
+                                       trimmed.startsWith('http://') || 
+                                       trimmed.startsWith('https://') || 
+                                       trimmed.startsWith('blob:') ||
+                                       trimmed.includes('/9j/') || 
+                                       trimmed.includes('iVBORw0KGgo');
+                
+                if (isValidImageData) {
+                    modalImage.src = imageSrc;
+                    modal.style.display = 'flex';
+                    console.log('模态框设置图片src:', imageSrc.substring(0, 50) + '...');
+                    
+                    // 添加错误处理，防止加载失败
+                    modalImage.onerror = function() {
+                        console.error('模态框图片加载失败:', imageSrc.substring(0, 50) + '...');
+                        modal.style.display = 'none';
+                        alert('图片加载失败，无法显示放大图片');
+                    };
+                } else {
+                    console.warn('模态框：无效的图片数据，无法显示:', imageSrc.substring(0, 50) + '...');
+                    return; // 不显示模态框
+                }
+            } else {
+                console.warn('模态框：空的或无效的图片数据，无法显示');
+                return; // 不显示模态框
+            }
+        }
+        
+        // 隐藏提示框
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+        
+        // 更新现有标记
+        function updateMarker() {
+            const title = document.getElementById('risk-title').value.trim();
+            const description = document.getElementById('risk-description').value.trim();
+            const type = document.getElementById('risk-type').value;
+            const data = document.getElementById('risk-data').value.trim();
+            const imageInput = document.getElementById('risk-image');
+            
+            if (!title || !description) {
+                alert('请填写风险点名称和安全隐患！');
+                return;
+            }
+            
+            if (!selectedMarker || selectedMarker.dataset.temp === 'true') {
+                alert('请先选择一个已有标记！');
+                return;
+            }
+            
+                // 更新现有标记
+                const riskPoint = getRiskPointByMarker(selectedMarker);
+                if (riskPoint) {
+                    riskPoint.type = type;
+                    riskPoint.title = title;
+                riskPoint.data = data;
+                    riskPoint.description = description;
+                    
+                // 更新图片数据：使用当前选中的图片数组
+                riskPoint.imageData = selectedImages.map(img => img.data);
+                finishUpdate();
+                
+                async function finishUpdate() {
+                    // 更新标记样式
+                    selectedMarker.className = `risk-marker ${type} selected`;
+                    
+                    // 更新风险点列表
+                    updateRiskList();
+                    
+                    // 自动保存数据
+                    try {
+                        await saveData();
+                        alert('标记已更新成功！');
+                        console.log('标记已更新');
+                    } catch (error) {
+                        console.error('保存数据失败:', error);
+                        alert('标记已更新，但保存失败，请检查网络连接');
+                    }
+                }
+            }
+        }
+        
+        // 保存所有标记到数据库
+        async function saveAllMarkers() {
+            console.log('保存所有标记，当前标记数量:', riskPoints.length);
+            console.log('标记详情:', riskPoints);
+            
+            if (riskPoints.length === 0) {
+                alert('没有标记需要保存！请先添加标记。');
+                return;
+            }
+            
+            try {
+                // 显示保存状态
+                const saveBtn = document.getElementById('save-all-btn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = '正在保存...';
+                saveBtn.disabled = true;
+                
+                // 保存到数据库
+                await saveData();
+                
+                alert(`✅ 已成功保存 ${riskPoints.length} 个标记到数据库！`);
+                console.log(`✅ 数据已保存，共 ${riskPoints.length} 个标记点`);
+                
+            } catch (error) {
+                console.error('保存数据失败:', error);
+                alert(`❌ 保存失败: ${error.message}`);
+            } finally {
+                // 恢复按钮状态
+                const saveBtn = document.getElementById('save-all-btn');
+                saveBtn.textContent = '保存所有标记';
+                saveBtn.disabled = false;
+            }
+        }
+        
+        // 删除风险点
+        async function deleteRiskPoint() {
+            console.log('deleteRiskPoint被调用, selectedMarker:', selectedMarker);
+            
+            if (!selectedMarker) {
+                alert('请先选择一个标记点！');
+                console.log('没有选中的标记');
+                return;
+            }
+            
+            const isTemp = selectedMarker.dataset.temp === 'true';
+            console.log('是否临时标记:', isTemp);
+            
+            if (!isTemp) {
+                    // 删除正式标记
+                    const index = riskPoints.findIndex(point => point.marker === selectedMarker);
+                console.log('在riskPoints中找到的索引:', index);
+                
+                    if (index !== -1) {
+                        riskPoints.splice(index, 1);
+                    console.log('从riskPoints数组中移除，剩余标记数:', riskPoints.length);
+                }
+                
+                // 更新风险点列表
+                updateRiskList();
+                
+                // 保存数据
+                try {
+                    await saveData();
+                } catch (error) {
+                    console.error('保存数据失败:', error);
+                }
+            }
+            
+            selectedMarker.remove();
+                selectedMarker = null;
+            console.log('标记已删除');
+                
+                // 清除表单
+                document.getElementById('risk-title').value = '';
+                document.getElementById('risk-description').value = '';
+                
+            // 隐藏更新按钮
+            document.getElementById('update-marker-btn').style.display = 'none';
+            
+            alert('标记已删除！');
+        }
+        
+        // 更新风险点列表
+        function updateRiskList() {
+            const riskItemsContainer = document.getElementById('risk-items');
+            riskItemsContainer.innerHTML = '';
+            
+            riskPoints.forEach(point => {
+                const riskType = riskTypes[point.type];
+                const item = document.createElement('div');
+                item.className = 'risk-item';
+                item.innerHTML = `
+                    <div class="risk-title">${point.title} <span class="risk-type ${riskType.className}">${riskType.name}</span></div>
+                    <div class="risk-description">${point.description.substring(0, 50)}...</div>
+                `;
+                
+                item.addEventListener('click', function() {
+                    // 滚动到标记位置
+                    point.marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (isAdminMode) {
+                        selectMarker(point.marker);
+                    }
+                });
+                
+                riskItemsContainer.appendChild(item);
+            });
+        }
+        
+        
+        // 检查axios是否可用的工具函数
+        function ensureAxiosAvailable() {
+            return new Promise((resolve, reject) => {
+                if (typeof axios !== 'undefined') {
+                    resolve(axios);
+                    return;
+                }
+                
+                // 等待axios加载，最多等待10秒
+                let attempts = 0;
+                const maxAttempts = 50; // 50次 * 200ms = 10秒
+                
+                const checkAxios = () => {
+                    attempts++;
+                    if (typeof axios !== 'undefined') {
+                        resolve(axios);
+                    } else if (attempts >= maxAttempts) {
+                        // 如果axios不可用，创建一个基于fetch的兼容层
+                        console.warn('axios加载超时，使用fetch作为备用');
+                        const fetchAxios = {
+                            request: async function(config) {
+                                try {
+                                    const response = await fetch(config.url, {
+                                        method: config.method || 'GET',
+                                        headers: config.headers || {},
+                                        body: config.data ? JSON.stringify(config.data) : undefined
+                                    });
+                                    
+                                    if (!response.ok) {
+                                        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
+                                        error.response = {
+                                            status: response.status,
+                                            statusText: response.statusText
+                                        };
+                                        throw error;
+                                    }
+                                    
+                                    let data;
+                                    try {
+                                        data = await response.json();
+                                    } catch (e) {
+                                        // 如果不是JSON响应，返回文本
+                                        data = await response.text();
+                                    }
+                                    
+                                    return { data: data };
+                                } catch (error) {
+                                    if (!error.response) {
+                                        // 网络错误或其他错误
+                                        error.request = true;
+                                    }
+                                    throw error;
+                                }
+                            }
+                        };
+                        resolve(fetchAxios);
+                    } else {
+                        setTimeout(checkAxios, 200);
+                    }
+                };
+                
+                checkAxios();
+            });
+        }
+
+        // API 工具函数 - 使用 axios 或 fetch 备用
+        async function apiRequest(endpoint, options = {}) {
+            // 动态构建URL并发送请求
+            async function makeRequest(baseUrl) {
+                const url = `${baseUrl}${endpoint}`;
+                
+                console.log(`🔄 API请求: ${options.method || 'GET'} ${url}`);
+                
+                try {
+                    // 确保axios可用
+                    const axiosInstance = await ensureAxiosAvailable();
+                    
+                    const axiosConfig = {
+                        method: options.method || 'GET',
+                        url: url,
+                        timeout: API_CONFIG.timeout,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            ...options.headers
+                        },
+                        // 对于跨域请求的重要设置
+                        withCredentials: false,
+                        ...options
+                    };
+                    
+                    // 如果有请求体数据，添加到配置中
+                    if (options.data) {
+                        axiosConfig.data = options.data;
+                    } else if (options.body) {
+                        // 向后兼容：如果使用的是 body，则将其转换为 data
+                        axiosConfig.data = JSON.parse(options.body);
+                    }
+                    
+                    const response = await axiosInstance.request(axiosConfig);
+                    console.log(`✅ API响应:`, response.data);
+                    return response.data;
+                } catch (error) {
+                    // 统一的错误处理
+                    if (error.response) {
+                        // 服务器响应了错误状态码
+                        throw new Error(`HTTP错误: ${error.response.status} ${error.response.statusText}`);
+                    } else if (error.request) {
+                        // 请求已发送但没有收到响应
+                        throw new Error(`网络错误: 无法连接到服务器`);
+                    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        // fetch相关错误
+                        throw new Error(`网络错误: ${error.message}`);
+                    } else {
+                        // 其他错误
+                        throw new Error(`请求配置错误: ${error.message}`);
+                    }
+                }
+            }
+            
+            // 收集所有可能的URL
+            const urlsToTry = [API_CONFIG.baseUrl];
+            if (API_CONFIG.fallbackUrls) {
+                urlsToTry.push(...API_CONFIG.fallbackUrls.filter(url => url !== API_CONFIG.baseUrl));
+            }
+            
+            let lastError = null;
+            
+            // 依次尝试所有URL
+            for (const baseUrl of urlsToTry) {
+                try {
+                    console.log(`🔄 尝试请求: ${baseUrl}${endpoint}`);
+                    return await makeRequest(baseUrl);
+                } catch (error) {
+                    console.error(`❌ 请求失败 (${baseUrl}):`, error.message);
+                    lastError = error;
+                    
+                    // axios 的跨域错误检测
+                    const errorMessage = error.message.toLowerCase();
+                    if (errorMessage.includes('network error') || 
+                        errorMessage.includes('cors') || 
+                        errorMessage.includes('mixed content') || 
+                        errorMessage.includes('blocked') ||
+                        errorMessage.includes('failed to fetch') ||
+                        error.code === 'ERR_NETWORK') {
+                        console.log('🔄 检测到跨域相关错误，尝试下一个URL...');
+                        continue;
+                    } else {
+                        // 如果是其他类型的错误（比如404），可能不需要继续尝试
+                        console.log('🔄 检测到其他类型错误，但仍尝试下一个URL...');
+                    }
+                }
+            }
+            
+            // 所有URL都失败了
+            const errorMessage = `所有API请求都失败了。最后错误: ${lastError?.message}\n\n这通常是因为:\n` +
+                `1. 跨域（CORS）配置问题 - 服务器需要设置正确的CORS头\n` +
+                `2. Mixed Content问题 - HTTPS页面无法请求HTTP资源\n` +
+                `3. 网络连接问题\n\n` +
+                `解决方案:\n` +
+                `1. 在服务器端配置CORS头: Access-Control-Allow-Origin: *\n` +
+                `2. 为API服务器配置HTTPS证书\n` +
+                `3. 或者使用Netlify Functions作为代理`;
+            
+            console.error('❌ 所有API请求失败:', errorMessage);
+            throw new Error(errorMessage);
+        }
+        
+        // 从API获取标记点数据
+        async function loadDataFromAPI() {
+            try {
+                console.log('🔄 开始从API加载标记数据...');
+                console.log('当前API配置:', API_CONFIG);
+                const result = await apiRequest('/markers');
+                
+                if (result && typeof result === 'object') {
+                    if (result.success && result.data) {
+                        console.log(`✅ API返回成功，获得 ${result.data.length} 个标记点`);
+                        return result.data;
+                    } else {
+                        console.warn('⚠️ API返回格式异常:', result);
+                        // 有时候API可能直接返回数组而不是包装对象
+                        if (Array.isArray(result)) {
+                            console.log(`✅ API直接返回数组，获得 ${result.length} 个标记点`);
+                            return result;
+                        }
+                        throw new Error(result.message || 'API返回数据格式错误');
+                    }
+                } else {
+                    throw new Error('API返回了无效的数据格式');
+                }
+            } catch (error) {
+                console.error('从API加载数据失败:', error);
+                // 添加更详细的错误信息用于调试
+                if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                    console.error('🔍 这可能是跨域或网络连接问题');
+                }
+                throw error;
+            }
+        }
+        
+        // 保存数据到API
+        async function saveDataToAPI() {
+            try {
+                const dataToSave = riskPoints.map(point => {
+                    // 确保所有必需字段都有值
+                    const x = point.percentX !== undefined ? point.percentX : (point.x || 0);
+                    const y = point.percentY !== undefined ? point.percentY : (point.y || 0);
+                    
+                    // 处理图片数据：保存完整的多图片数组到数据库
+                    let imageDataForDB = null;
+                    if (point.imageData) {
+                        console.log(`保存标记点 ${point.title} 的图片数据:`, point.imageData);
+                        if (Array.isArray(point.imageData)) {
+                            // 如果是数组，保存整个数组
+                            imageDataForDB = point.imageData;
+                            console.log(`保存多图片数组，包含 ${point.imageData.length} 张图片`);
+                        } else if (typeof point.imageData === 'string') {
+                            // 如果是字符串，转换为数组保存
+                            imageDataForDB = [point.imageData];
+                            console.log('将单张图片转换为数组保存');
+                        }
+                    }
+                    
+                    return {
+                        id: point.id,
+                        x: x,
+                        y: y,
+                        percentX: x,  // 明确设置百分比坐标
+                        percentY: y,
+                        percent_x: x, // 数据库字段格式
+                        percent_y: y,
+                        type: point.type,
+                        title: point.title || '未命名标记',
+                        description: point.description || null,
+                        data: point.data || null,
+                        imageData: imageDataForDB  // 保存完整的多图片数组到数据库
+                    };
+                });
+                
+                console.log('准备保存的数据:', dataToSave);
+                
+                const result = await apiRequest('/markers/batch', {
+                    method: 'POST',
+                    data: dataToSave  // axios 使用 data 而不是 body，且会自动 JSON.stringify
+                });
+                
+                if (result.success) {
+                    console.log('✅ 数据已保存到服务器:', result);
+                    return true;
+                } else {
+                    throw new Error(result.message || '保存失败');
+                }
+            } catch (error) {
+                console.error('保存数据到API失败:', error);
+                throw error;
+            }
+        }
+        
+        // 获取嵌入式默认数据（用于离线使用）
+        function getEmbeddedData() {
+            // 这个数据将在HTML文件生成时自动填充
+            return window.embeddedMapData || [];
+        }
+        
+        // 修复被多次序列化的图片数据
+        function fixSerializedImageData(imageData) {
+            if (!imageData) return null;
+            
+            // 如果已经是数组，直接返回
+            if (Array.isArray(imageData)) {
+                return imageData;
+            }
+            
+            // 如果是字符串，检查是否需要解序列化
+            if (typeof imageData === 'string') {
+                // 检查是否看起来像被多次JSON.stringify过的字符串
+                if (imageData.startsWith('[') || (imageData.startsWith('"') && imageData.includes('[\\\"'))) {
+                    try {
+                        // 尝试解析，可能被多次JSON.stringify过
+                        let parsed = imageData;
+                        let iterations = 0;
+                        const maxIterations = 5; // 防止无限循环
+                        
+                        while (typeof parsed === 'string' && iterations < maxIterations) {
+                            // 检查是否看起来像JSON字符串
+                            if ((parsed.startsWith('[') && parsed.endsWith(']')) || 
+                                (parsed.startsWith('"') && parsed.endsWith('"'))) {
+                                try {
+                                    const temp = JSON.parse(parsed);
+                                    if (Array.isArray(temp)) {
+                                        parsed = temp;
+                                        break; // 找到数组就停止
+                                    } else if (typeof temp === 'string') {
+                                        parsed = temp;
+                                        iterations++;
+                                    } else {
+                                        break;
+                                    }
+                                } catch (e) {
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        console.log(`修复序列化数据，迭代次数: ${iterations}`, typeof parsed, parsed);
+                        return parsed;
+                    } catch (e) {
+                        console.warn('无法解析图片数据:', imageData.substring(0, 100) + '...', e);
+                        return null;
+                    }
+                }
+                
+                // 如果是正常的字符串（如base64），直接返回
+                return imageData;
+            }
+            
+            return imageData;
+        }
+        
+        // 加载数据的通用函数
+        function processMarkerData(data) {
+            data.forEach(point => {
+                let x, y;
+                if (point.percentX !== undefined && point.percentY !== undefined) {
+                    // 新格式：使用百分比坐标
+                    x = point.percentX;
+                    y = point.percentY;
+                } else if (point.percent_x !== undefined && point.percent_y !== undefined) {
+                    // 数据库格式：使用percent_x和percent_y字段
+                    x = point.percent_x;
+                    y = point.percent_y;
+                } else {
+                    // 旧格式或其他格式：直接使用原坐标
+                    x = point.x;
+                    y = point.y;
+                }
+                
+                // 调试和修复：查看加载的图片数据
+                let imageData = point.imageData || point.image_data;
+                if (imageData) {
+                    console.log(`加载标记点 ${point.title} 的原始图片数据:`, imageData, `类型: ${typeof imageData}`, `是否为数组: ${Array.isArray(imageData)}`);
+                    
+                    // 修复可能的序列化问题
+                    imageData = fixSerializedImageData(imageData);
+                    console.log(`修复后的图片数据:`, imageData);
+                }
+                addRiskPoint(x, y, point.type, point.title, point.description, point.id, point.data, imageData);
+            });
+            updateRiskList();
+            
+            // 更新标记位置以确保正确显示
+            setTimeout(() => {
+                updateAllMarkerPositions();
+            }, 500);
+        }
+
+        // 从API、本地存储和data.json文件加载数据
+        async function loadData() {
+            console.log('🔄 开始加载数据...');
+            
+            // 1. 首先尝试从API加载数据（在线模式，多用户共享）
+            try {
+                console.log('🌐 尝试从API加载数据...');
+                const apiData = await loadDataFromAPI();
+                if (apiData && apiData.length > 0) {
+                    console.log(`✅ 成功从API加载数据，包含 ${apiData.length} 个标记点`);
+                    processMarkerData(apiData);
+                    return;
+                }
+            } catch (apiError) {
+                console.log('⚠️ API加载失败，尝试其他方式:', apiError.message);
+            }
+            
+            // 2. 尝试从data.json文件加载（本地文件模式）
+            try {
+                console.log('📁 尝试从data.json加载...');
+                const response = await fetch('data.json', {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(`✅ 成功从data.json加载数据，包含 ${data.length} 个标记点`);
+                    processMarkerData(data);
+                    return;
+                }
+            } catch (e) {
+                console.log('⚠️ 无法加载data.json文件:', e.message);
+            }
+            
+            // 3. 尝试加载嵌入式数据（离线模式）
+            try {
+                console.log('📦 尝试加载嵌入式数据...');
+                const embeddedData = getEmbeddedData();
+                if (embeddedData && embeddedData.length > 0) {
+                    console.log(`✅ 找到嵌入式数据，包含 ${embeddedData.length} 个标记点`);
+                    processMarkerData(embeddedData);
+                    return;
+                }
+            } catch (embeddedError) {
+                console.log('⚠️ 嵌入式数据加载失败:', embeddedError.message);
+            }
+            
+            // 4. 最后尝试从localStorage加载（本地缓存模式）
+            const savedData = localStorage.getItem('campusRiskPoints');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    console.log(`✅ 成功从localStorage加载数据，包含 ${data.length} 个标记点`);
+                    processMarkerData(data);
+                    console.log('💾 数据加载完成');
+                    return;
+                } catch (e) {
+                    console.error('❌ localStorage加载失败:', e);
+                }
+            }
+            
+            // 5. 如果所有方式都失败，显示提示
+            console.log('⚠️ 未能加载任何数据，这是一个全新的开始！');
+            setTimeout(() => {
+                if (riskPoints.length === 0) {
+                    console.log('💡 提示：您可以开始添加标记了！点击"添加标记"按钮开始。');
+                }
+            }, 1000);
+        }
+        
+        // 保存数据（API和本地存储双重保存）
+        async function saveData() {
+            const dataToSave = riskPoints.map(point => ({
+                id: point.id,
+                x: point.percentX !== undefined ? point.percentX : point.x, // 优先使用百分比坐标
+                y: point.percentY !== undefined ? point.percentY : point.y,
+                percentX: point.percentX !== undefined ? point.percentX : point.x, // 明确保存百分比坐标
+                percentY: point.percentY !== undefined ? point.percentY : point.y,
+                type: point.type,
+                title: point.title,
+                data: point.data || '',
+                description: point.description,
+                imageData: point.imageData || null
+            }));
+            
+            // 1. 优先保存到API（多用户共享）
+            try {
+                console.log('🔄 正在保存数据到服务器...');
+                await saveDataToAPI();
+                console.log('✅ 数据已保存到服务器');
+            } catch (apiError) {
+                console.warn('⚠️ 保存到服务器失败，仅保存到本地:', apiError.message);
+            }
+            
+            // 2. 同时保存到本地存储（离线备份）
+            try {
+            localStorage.setItem('campusRiskPoints', JSON.stringify(dataToSave));
+                console.log('✅ 数据已保存到本地存储');
+            } catch (localError) {
+                console.error('❌ 保存到本地存储失败:', localError.message);
+        }
+        }
+        
+    </script>
+</body>
+</html>
