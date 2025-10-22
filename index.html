@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>校园安全风险地图</title>
+    <title>校园数据地图</title>
     <style>
         * {
             margin: 0;
@@ -280,13 +280,13 @@
         }
         
         .risk-marker.high {
-            background-color: #e53935;
-            box-shadow: 0 0 10px rgba(229, 57, 53, 0.7);
+            background-color: #43a047;
+            box-shadow: 0 0 10px rgba(67, 160, 71, 0.7);
         }
         
         .risk-marker.medium {
-            background-color: #ff9800;
-            box-shadow: 0 0 10px rgba(255, 152, 0, 0.7);
+            background-color: #43a047;
+            box-shadow: 0 0 10px rgba(67, 160, 71, 0.7);
         }
         
         .risk-marker.low {
@@ -690,7 +690,7 @@
                     <h3>管理员使用说明</h3>
                     <ul>
                         <li>点击右上角"管理员模式"按钮进入编辑界面</li>
-                        <li>填写风险类型、地点名称和安全隐患</li>
+                        <li>填写数据类型、地点名称和数字生存指南</li>
                         <li>点击地图位置直接生成标记</li>
                         <li>点击已有标记可查看和编辑信息</li>
                         <li>点击"删除标记"删除选中的标记</li>
@@ -701,7 +701,7 @@
                 <div class="instructions viewer-mode">
                     <h3>查看说明</h3>
                     <ul>
-                        <li>点击标记点查看风险信息</li>
+                        <li>点击标记点查看数据信息</li>
                         <li>点击信息卡片中的图片可放大查看</li>
                         <li>点击卡片外区域关闭信息卡片</li>
                     </ul>
@@ -709,31 +709,27 @@
                 
                 <div class="admin-only">
                     <div class="form-group">
-                        <label for="risk-type">风险类型</label>
-                        <select id="risk-type">
-                            <option value="high">高风险</option>
-                            <option value="medium">中风险</option>
-                            <option value="low">低风险</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
                         <label for="risk-title">地点名称</label>
                         <input type="text" id="risk-title" placeholder="例如：教学楼A座">
                     </div>
                     
                     <div class="form-group">
-                        <label for="risk-data">数据描述（选填）</label>
+                        <label for="risk-type">测量方法（选填）</label>
+                        <input type="text" id="risk-type" placeholder="例如：激光测距仪、卷尺测量、GPS定位">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk-data">测量值（选填）</label>
                         <textarea id="risk-data" placeholder="例如：&#10;楼高：21.8米&#10;宽度：15米&#10;层高：3.5米" style="height: 80px;"></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label for="risk-description">安全隐患</label>
-                        <textarea id="risk-description" placeholder="详细描述安全隐患..."></textarea>
+                        <label for="risk-description">数字生存指南</label>
+                        <textarea id="risk-description" placeholder="详细描述数字生存指南..."></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label for="risk-image">实景图片（选填，最多5张）</label>
+                        <label for="risk-image">实景图片（选填，最多10张）</label>
                         <input type="file" id="risk-image" accept="image/*" multiple style="padding: 5px;">
                         <div id="image-preview" class="image-preview-container" style="margin-top: 10px; max-width: 100%;"></div>
                     </div>
@@ -753,9 +749,9 @@
                 </div>
                 
                 <div class="risk-list">
-                    <h3>已标记的风险点</h3>
+                    <h3>已标记的数据点</h3>
                     <div id="risk-items">
-                        <!-- 风险点列表将在这里动态生成 -->
+                        <!-- 数据点列表将在这里动态生成 -->
                     </div>
                 </div>
             </div>
@@ -816,7 +812,7 @@
             ]
         };
         
-        // 风险类型配置
+        // 数据类型配置（保留用于兼容性，但不再使用）
         const riskTypes = {
             high: { name: '高风险', color: '#e53935', className: 'high-risk' },
             medium: { name: '中风险', color: '#ff9800', className: 'medium-risk' },
@@ -949,15 +945,6 @@
             document.getElementById('clear-btn').addEventListener('click', deleteRiskPoint);
             document.getElementById('save-all-btn').addEventListener('click', saveAllMarkers);
             
-            // 风险类型变化时更新临时标记颜色
-            document.getElementById('risk-type').addEventListener('change', function() {
-                if (selectedMarker && selectedMarker.dataset.temp === 'true') {
-                    const newType = this.value;
-                    selectedMarker.className = `risk-marker ${newType} selected`;
-                    selectedMarker.dataset.type = newType;
-                    console.log('临时标记颜色已更新为:', newType);
-                }
-            });
             
             // 背景音乐控制
             const musicToggle = document.getElementById('music-toggle');
@@ -1059,9 +1046,9 @@
                 const files = Array.from(e.target.files);
                 const preview = document.getElementById('image-preview');
                 
-                // 限制最多5张图片
-                if (selectedImages.length + files.length > 5) {
-                    alert('最多只能上传5张图片！');
+                // 限制最多10张图片
+                if (selectedImages.length + files.length > 10) {
+                    alert('最多只能上传10张图片！');
                     return;
                 }
                 
@@ -1162,6 +1149,8 @@
                 // 清除表单
                 document.getElementById('risk-title').value = '';
                 document.getElementById('risk-description').value = '';
+                document.getElementById('risk-type').value = '';
+                document.getElementById('risk-data').value = '';
             }
             
             updateModeDisplay();
@@ -1277,7 +1266,7 @@
             // 检查必填字段
             const title = document.getElementById('risk-title').value.trim();
             const description = document.getElementById('risk-description').value.trim();
-            const type = document.getElementById('risk-type').value;
+            const type = document.getElementById('risk-type').value.trim();
             const data = document.getElementById('risk-data').value.trim();
             const imageInput = document.getElementById('risk-image');
             let imageData = null;
@@ -1306,7 +1295,7 @@
                     descInput.style.border = '';
                 }, 3000);
                 
-                alert('请先填写风险点名称和安全隐患！');
+                alert('请先填写地点名称和数字生存指南！');
                 console.log('未填写必填信息，无法添加标记');
                 return;
             }
@@ -1325,6 +1314,7 @@
                 // 清除表单
                 document.getElementById('risk-title').value = '';
                 document.getElementById('risk-description').value = '';
+                document.getElementById('risk-type').value = '';
                 document.getElementById('risk-data').value = '';
                 document.getElementById('risk-image').value = '';
                 document.getElementById('image-preview').innerHTML = '';
@@ -1332,7 +1322,7 @@
                 // 清除选中的图片数组
                 selectedImages = [];
                 
-                // 更新风险点列表
+                // 更新数据点列表
                 updateRiskList();
                 
                 // 自动保存数据
@@ -1355,7 +1345,7 @@
             }
             
             const marker = document.createElement('div');
-            marker.className = `risk-marker ${type} selected`;
+            marker.className = `risk-marker low selected`; // 统一使用绿色样式
             
             // 将百分比坐标转换为当前屏幕坐标
             const screenCoords = imageToScreenCoords(percentX, percentY);
@@ -1376,7 +1366,7 @@
             console.log('创建临时标记，类型:', type, '等待填写信息');
         }
         
-        // 添加风险点
+        // 添加数据点
         function addRiskPoint(percentX, percentY, type, title, description, id = null, data = '', imageData = null) {
             // 处理多图片数据：如果是数组则保持，如果是单个数据则转换为数组
             let imageDataArray = [];
@@ -1388,7 +1378,7 @@
                 }
             }
             const marker = document.createElement('div');
-            marker.className = `risk-marker ${type}`;
+            marker.className = `risk-marker low`; // 统一使用绿色样式
             
             // 将百分比坐标转换为当前屏幕坐标用于显示
             const screenCoords = imageToScreenCoords(percentX, percentY);
@@ -1415,7 +1405,7 @@
             
             markersContainer.appendChild(marker);
             
-            // 存储风险点数据
+            // 存储数据点数据
             const riskPoint = {
                 id: id || Date.now() + Math.random(),
                 type: type,
@@ -1477,10 +1467,10 @@
             
             // 填充表单
             const riskPoint = getRiskPointByMarker(marker);
-            console.log('找到的风险点:', riskPoint);
+            console.log('找到的数据点:', riskPoint);
             if (riskPoint) {
-                document.getElementById('risk-type').value = riskPoint.type;
                 document.getElementById('risk-title').value = riskPoint.title;
+                document.getElementById('risk-type').value = riskPoint.type || '';
                 document.getElementById('risk-data').value = riskPoint.data || '';
                 document.getElementById('risk-description').value = riskPoint.description;
                 
@@ -1492,7 +1482,7 @@
             }
         }
         
-        // 根据标记获取风险点
+        // 根据标记获取数据点
         function getRiskPointByMarker(marker) {
             return riskPoints.find(point => point.marker === marker);
         }
@@ -1575,7 +1565,7 @@
             updateImagePreview();
         };
         
-        // 从风险点数据更新选中的图片数组
+        // 从数据点数据更新选中的图片数组
         function updateSelectedImagesFromRiskPoint(riskPoint) {
             console.log('updateSelectedImagesFromRiskPoint被调用，riskPoint:', riskPoint);
             selectedImages = [];
@@ -1651,12 +1641,11 @@
             const riskPoint = getRiskPointByMarker(marker);
             if (!riskPoint) return;
             
-            const riskType = riskTypes[riskPoint.type];
             let imagesToShow = []; // 声明在函数作用域
             
-            let html = `<h4>风险点信息</h4>`;
+            let html = `<h4>数据卡片</h4>`;
             
-            // 地点
+            // 地点（第一位）
             html += `
                 <div class="tooltip-row">
                     <div class="tooltip-label">地点：</div>
@@ -1664,30 +1653,30 @@
                 </div>
             `;
             
-            // 风险等级
-            html += `
-                <div class="tooltip-row">
-                    <div class="tooltip-label">风险等级：</div>
-                    <div class="tooltip-value">
-                        <span class="risk-level ${riskType.className}">${riskType.name}</span>
+            // 测量方法（如果有）
+            if (riskPoint.type && riskPoint.type.trim()) {
+                html += `
+                    <div class="tooltip-row">
+                        <div class="tooltip-label">测量方法：</div>
+                        <div class="tooltip-value">${riskPoint.type}</div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             
-            // 数据描述（如果有）
+            // 测量值（如果有）
             if (riskPoint.data && riskPoint.data.trim()) {
                 html += `
                     <div class="tooltip-row">
-                        <div class="tooltip-label">数据描述：</div>
+                        <div class="tooltip-label">测量值：</div>
                         <div class="tooltip-value" style="white-space: pre-line;">${riskPoint.data}</div>
                     </div>
                 `;
             }
             
-            // 安全隐患
+            // 数字生存指南
             html += `
                 <div class="tooltip-row">
-                    <div class="tooltip-label">安全隐患：</div>
+                    <div class="tooltip-label">数字生存指南：</div>
                     <div class="tooltip-value">${riskPoint.description}</div>
                 </div>
             `;
@@ -1875,12 +1864,12 @@
         function updateMarker() {
             const title = document.getElementById('risk-title').value.trim();
             const description = document.getElementById('risk-description').value.trim();
-            const type = document.getElementById('risk-type').value;
+            const type = document.getElementById('risk-type').value.trim();
             const data = document.getElementById('risk-data').value.trim();
             const imageInput = document.getElementById('risk-image');
             
             if (!title || !description) {
-                alert('请填写风险点名称和安全隐患！');
+                alert('请填写地点名称和数字生存指南！');
                 return;
             }
             
@@ -1892,9 +1881,9 @@
                 // 更新现有标记
                 const riskPoint = getRiskPointByMarker(selectedMarker);
                 if (riskPoint) {
-                    riskPoint.type = type;
                     riskPoint.title = title;
-                riskPoint.data = data;
+                    riskPoint.type = type;
+                    riskPoint.data = data;
                     riskPoint.description = description;
                     
                 // 更新图片数据：使用当前选中的图片数组
@@ -1903,9 +1892,9 @@
                 
                 async function finishUpdate() {
                     // 更新标记样式
-                    selectedMarker.className = `risk-marker ${type} selected`;
+                    selectedMarker.className = `risk-marker low selected`; // 统一使用绿色样式
                     
-                    // 更新风险点列表
+                    // 更新数据点列表
                     updateRiskList();
                     
                     // 自动保存数据
@@ -1955,7 +1944,7 @@
             }
         }
         
-        // 删除风险点
+        // 删除数据点
         async function deleteRiskPoint() {
             console.log('deleteRiskPoint被调用, selectedMarker:', selectedMarker);
             
@@ -1978,7 +1967,7 @@
                     console.log('从riskPoints数组中移除，剩余标记数:', riskPoints.length);
                 }
                 
-                // 更新风险点列表
+                // 更新数据点列表
                 updateRiskList();
                 
                 // 保存数据
@@ -1996,6 +1985,8 @@
                 // 清除表单
                 document.getElementById('risk-title').value = '';
                 document.getElementById('risk-description').value = '';
+                document.getElementById('risk-type').value = '';
+                document.getElementById('risk-data').value = '';
                 
             // 隐藏更新按钮
             document.getElementById('update-marker-btn').style.display = 'none';
@@ -2003,17 +1994,16 @@
             alert('标记已删除！');
         }
         
-        // 更新风险点列表
+        // 更新数据点列表
         function updateRiskList() {
             const riskItemsContainer = document.getElementById('risk-items');
             riskItemsContainer.innerHTML = '';
             
             riskPoints.forEach(point => {
-                const riskType = riskTypes[point.type];
                 const item = document.createElement('div');
                 item.className = 'risk-item';
                 item.innerHTML = `
-                    <div class="risk-title">${point.title} <span class="risk-type ${riskType.className}">${riskType.name}</span></div>
+                    <div class="risk-title">${point.title}</div>
                     <div class="risk-description">${point.description.substring(0, 50)}...</div>
                 `;
                 
