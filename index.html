@@ -541,6 +541,21 @@
             cursor: pointer;
         }
         
+        .music-upload-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .music-upload-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
         /* 多图片预览样式 */
         .image-preview-container {
             display: flex;
@@ -667,7 +682,9 @@
         <div class="music-controls">
             <button class="music-toggle" id="music-toggle">🎵</button>
             <input type="range" class="music-volume" id="music-volume" min="0" max="100" value="30">
-            <audio id="background-music" loop></audio>
+            <input type="file" id="music-file-input" accept="audio/*,.flac,.mp3,.wav,.ogg,.m4a" style="display: none;">
+            <button class="music-upload-btn" id="music-upload-btn" title="上传音乐文件">📁</button>
+            <audio id="background-music" loop preload="auto" src="CMJ-星星在唱歌（纯音乐）.mp3"></audio>
         </div>
         
         <div class="admin-controls">
@@ -950,9 +967,12 @@
             const musicToggle = document.getElementById('music-toggle');
             const musicVolume = document.getElementById('music-volume');
             const backgroundMusic = document.getElementById('background-music');
+            const musicFileInput = document.getElementById('music-file-input');
+            const musicUploadBtn = document.getElementById('music-upload-btn');
             let isMusicPlaying = false;
             let audioContext = null;
             let backgroundSound = null;
+            let currentMusicFile = null;
             
             // 初始化背景音乐
             function initBackgroundMusic() {
@@ -1001,16 +1021,68 @@
             
             backgroundMusic.volume = 0.3;
             
-            musicToggle.addEventListener('click', function() {
-                if (isMusicPlaying) {
-                    // 停止音乐
-                    if (audioContext) {
-                        audioContext.suspend();
+            // 设置默认音乐文件
+            const defaultMusicFile = "CMJ-星星在唱歌（纯音乐）.mp3";
+            if (backgroundMusic.src && backgroundMusic.src.includes(defaultMusicFile)) {
+                currentMusicFile = backgroundMusic.src;
+                musicUploadBtn.title = `当前音乐: ${defaultMusicFile}`;
+                musicUploadBtn.textContent = '🎶';
+                console.log('默认音乐文件已加载:', defaultMusicFile);
+            }
+            
+            // 音乐文件上传功能
+            musicUploadBtn.addEventListener('click', function() {
+                musicFileInput.click();
+            });
+            
+            musicFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // 检查文件类型
+                    const supportedTypes = ['audio/flac', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg'];
+                    const fileExtension = file.name.toLowerCase().split('.').pop();
+                    const isSupported = supportedTypes.includes(file.type) || 
+                                      ['flac', 'mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension);
+                    
+                    if (!isSupported) {
+                        alert('不支持的音乐格式！请选择 FLAC、MP3、WAV、OGG 或 M4A 格式的文件。');
+                        return;
                     }
-                    musicToggle.textContent = '🎵';
-                    isMusicPlaying = false;
+                    
+                    // 创建文件URL
+                    const fileURL = URL.createObjectURL(file);
+                    currentMusicFile = fileURL;
+                    
+                    // 设置音频源
+                    backgroundMusic.src = fileURL;
+                    
+                    // 显示文件名
+                    musicUploadBtn.title = `当前音乐: ${file.name}`;
+                    musicUploadBtn.textContent = '🎶';
+                    
+                    console.log('音乐文件已加载:', file.name, '格式:', file.type);
+                    
+                    // 如果当前正在播放，自动开始播放新音乐
+                    if (isMusicPlaying) {
+                        playMusic();
+                    }
+                }
+            });
+            
+            // 播放音乐函数
+            function playMusic() {
+                if (currentMusicFile || backgroundMusic.src) {
+                    // 播放音乐文件（默认MP3或上传的文件）
+                    backgroundMusic.play().then(() => {
+                        musicToggle.textContent = '🔇';
+                        isMusicPlaying = true;
+                        console.log('开始播放音乐文件:', backgroundMusic.src);
+                    }).catch(error => {
+                        console.error('播放音乐失败:', error);
+                        alert('音乐播放失败，请检查文件格式或浏览器兼容性。\n\n提示：某些浏览器需要用户交互后才能播放音频。');
+                    });
                 } else {
-                    // 开始音乐
+                    // 播放默认的环境音效（备用方案）
                     if (!audioContext) {
                         initBackgroundMusic();
                     }
@@ -1027,6 +1099,30 @@
                         backgroundSound.playBackgroundLoop();
                     }
                 }
+            }
+            
+            // 停止音乐函数
+            function stopMusic() {
+                if (currentMusicFile || backgroundMusic.src) {
+                    // 停止播放音乐文件
+                    backgroundMusic.pause();
+                    backgroundMusic.currentTime = 0;
+                } else {
+                    // 停止环境音效
+                    if (audioContext) {
+                        audioContext.suspend();
+                    }
+                }
+                musicToggle.textContent = '🎵';
+                isMusicPlaying = false;
+            }
+            
+            musicToggle.addEventListener('click', function() {
+                if (isMusicPlaying) {
+                    stopMusic();
+                } else {
+                    playMusic();
+                }
             });
             
             musicVolume.addEventListener('input', function() {
@@ -1038,6 +1134,29 @@
                     // Web Audio API的音频上下文音量调整
                     audioContext.destination.volume = volume;
                 }
+            });
+            
+            // 自动循环播放事件监听
+            backgroundMusic.addEventListener('ended', function() {
+                console.log('音乐播放结束，自动重新开始播放');
+                if (isMusicPlaying && (currentMusicFile || backgroundMusic.src)) {
+                    // 音乐播放结束后自动重新开始
+                    backgroundMusic.currentTime = 0;
+                    backgroundMusic.play().catch(error => {
+                        console.error('自动循环播放失败:', error);
+                    });
+                }
+            });
+            
+            // 音乐加载完成事件
+            backgroundMusic.addEventListener('loadeddata', function() {
+                console.log('音乐文件加载完成，时长:', backgroundMusic.duration, '秒');
+            });
+            
+            // 音乐播放错误处理
+            backgroundMusic.addEventListener('error', function(e) {
+                console.error('音乐播放错误:', e);
+                alert('音乐文件播放出错，请检查文件是否损坏或格式是否支持。');
             });
             
             // 多图片上传预览
