@@ -15,8 +15,11 @@ exports.handler = async function(event, context) {
     return { statusCode: 200, headers, body: '' };
   }
 
-  const apiUrl = `http://124.223.222.214:3000/api/markers`;
-  console.log('🔗 Fetching from:', apiUrl);
+  // 使用cors-anywhere解决HTTPS请求HTTP的问题
+  const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+  const originalApiUrl = 'http://124.223.222.214:3000/api/markers';
+  const apiUrl = corsProxy + originalApiUrl;
+  console.log('🔗 Using CORS proxy:', apiUrl);
 
   try {
     // 更短的超时时间用于测试
@@ -30,12 +33,12 @@ exports.handler = async function(event, context) {
       method: event.httpMethod,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Netlify-Function/1.0'
+        'User-Agent': 'Netlify-Function/1.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'https://yymap.netlify.app'
       },
       signal: controller.signal,
-      // 添加更多fetch选项
-      redirect: 'follow',
-      follow: 10
+      redirect: 'follow'
     };
 
     // 添加请求体（如果是POST）

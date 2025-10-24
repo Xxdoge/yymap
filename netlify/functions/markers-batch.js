@@ -16,7 +16,10 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const apiUrl = `http://124.223.222.214:3000/api/markers/batch`;
+  // 使用cors-anywhere解决HTTPS请求HTTP的问题
+  const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+  const originalApiUrl = 'http://124.223.222.214:3000/api/markers/batch';
+  const apiUrl = corsProxy + originalApiUrl;
   
   try {
     console.log(`🔄 批量操作请求: ${event.httpMethod} ${apiUrl}`);
@@ -26,7 +29,9 @@ exports.handler = async function(event, context) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Netlify-Proxy/1.0'
+        'User-Agent': 'Netlify-Function/1.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'https://yymap.netlify.app'
       },
       body: event.body,
       timeout: 15000 // 15秒超时，批量操作可能需要更长时间
