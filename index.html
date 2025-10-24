@@ -604,6 +604,7 @@
             // 创建多个备用CDN的加载函数
             function loadAxiosFromCDN() {
                 const cdnList = [
+                    'js/axios.min.js',  // 本地文件优先
                     'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
                     'https://unpkg.com/axios/dist/axios.min.js',
                     'https://cdn.skypack.dev/axios/dist/axios.min.js'
@@ -672,7 +673,7 @@
             loadAxiosFromCDN();
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/axios.min.js"></script>
 </head>
 <body>
     <div class="container viewer-mode" id="app-container">
@@ -804,28 +805,33 @@
         const API_CONFIG = {
             // 智能API地址选择
             baseUrl: (function() {
-                const isHttps = window.location.protocol === 'https:';
+                const protocol = window.location.protocol;
+                const isHttps = protocol === 'https:';
+                const isFile = protocol === 'file:';
                 const isNetlify = window.location.hostname.includes('netlify');
                 const serverHost = '124.223.222.214:3000';
                 
+                // 如果是文件协议（直接打开HTML），直接使用完整HTTP地址
+                if (isFile) {
+                    console.log('📁 检测到文件协议，使用完整HTTP地址');
+                    return `http://${serverHost}/api`;
+                }
                 // 如果是Netlify环境，尝试使用相对路径（通过代理）
-                if (isNetlify) {
-                    // 在Netlify上，我们可以配置代理来转发API请求
+                else if (isNetlify) {
+                    console.log('🌐 检测到Netlify环境，使用代理路径');
                     return '/api';
-                } else if (isHttps) {
-                    // 其他HTTPS环境，尝试HTTPS
-                    return `https://${serverHost}/api`;
-                } else {
-                    // HTTP环境使用HTTP
+                } 
+                // 其他环境使用HTTP
+                else {
+                    console.log('🌐 检测到其他环境，使用HTTP地址');
                     return `http://${serverHost}/api`;
                 }
             })(),
             timeout: 10000, // 10秒超时
             // 添加备用URL配置，用于回退
             fallbackUrls: [
-                '/api',  // Netlify代理路径
                 'http://124.223.222.214:3000/api',  // 原始HTTP地址
-                'https://124.223.222.214:3000/api'  // HTTPS地址（如果服务器支持）
+                '/api'  // Netlify代理路径
             ]
         };
         
@@ -838,6 +844,14 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', async function() {
+            // 清除本地存储，避免旧数据干扰
+            try {
+                localStorage.removeItem('campusRiskPoints');
+                console.log('🧹 已清除本地存储数据');
+            } catch (e) {
+                console.log('⚠️ 清除本地存储失败:', e.message);
+            }
+            
             mapContainer = document.getElementById('map');
             markersContainer = document.getElementById('markers-container');
             tooltip = document.getElementById('tooltip');
@@ -2515,28 +2529,7 @@
                 console.log('⚠️ API加载失败，尝试其他方式:', apiError.message);
             }
             
-            // 2. 尝试从data.json文件加载（本地文件模式）
-            try {
-                console.log('📁 尝试从data.json加载...');
-                const response = await fetch('data.json', {
-                    method: 'GET',
-                    mode: 'cors',
-                    credentials: 'omit',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log(`✅ 成功从data.json加载数据，包含 ${data.length} 个标记点`);
-                    processMarkerData(data);
-                    return;
-                }
-            } catch (e) {
-                console.log('⚠️ 无法加载data.json文件:', e.message);
-            }
+            // 2. data.json 文件已移除，不再尝试加载
             
             // 3. 尝试加载嵌入式数据（离线模式）
             try {
@@ -2551,19 +2544,7 @@
                 console.log('⚠️ 嵌入式数据加载失败:', embeddedError.message);
             }
             
-            // 4. 最后尝试从localStorage加载（本地缓存模式）
-            const savedData = localStorage.getItem('campusRiskPoints');
-            if (savedData) {
-                try {
-                    const data = JSON.parse(savedData);
-                    console.log(`✅ 成功从localStorage加载数据，包含 ${data.length} 个标记点`);
-                    processMarkerData(data);
-                    console.log('💾 数据加载完成');
-                    return;
-                } catch (e) {
-                    console.error('❌ localStorage加载失败:', e);
-                }
-            }
+            // 4. 不再使用localStorage，避免本地数据覆盖
             
             // 5. 如果所有方式都失败，显示提示
             console.log('⚠️ 未能加载任何数据，这是一个全新的开始！');
@@ -2598,13 +2579,7 @@
                 console.warn('⚠️ 保存到服务器失败，仅保存到本地:', apiError.message);
             }
             
-            // 2. 同时保存到本地存储（离线备份）
-            try {
-            localStorage.setItem('campusRiskPoints', JSON.stringify(dataToSave));
-                console.log('✅ 数据已保存到本地存储');
-            } catch (localError) {
-                console.error('❌ 保存到本地存储失败:', localError.message);
-        }
+            // 2. 不再保存到本地存储，避免数据覆盖问题
         }
         
     </script>
