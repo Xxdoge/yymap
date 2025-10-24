@@ -4,8 +4,14 @@
 
 # 使用Netlify Functions代理API请求
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api-proxy"
+  from = "/api/markers"
+  to = "/.netlify/functions/markers"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/markers/batch"
+  to = "/.netlify/functions/markers-batch"
   status = 200
   force = true
 
