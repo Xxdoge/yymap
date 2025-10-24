@@ -805,33 +805,28 @@
         const API_CONFIG = {
             // 智能API地址选择
             baseUrl: (function() {
-                const protocol = window.location.protocol;
-                const isHttps = protocol === 'https:';
-                const isFile = protocol === 'file:';
+                const isHttps = window.location.protocol === 'https:';
                 const isNetlify = window.location.hostname.includes('netlify');
                 const serverHost = '124.223.222.214:3000';
                 
-                // 如果是文件协议（直接打开HTML），直接使用完整HTTP地址
-                if (isFile) {
-                    console.log('📁 检测到文件协议，使用完整HTTP地址');
-                    return `http://${serverHost}/api`;
-                }
                 // 如果是Netlify环境，尝试使用相对路径（通过代理）
-                else if (isNetlify) {
-                    console.log('🌐 检测到Netlify环境，使用代理路径');
+                if (isNetlify) {
+                    // 在Netlify上，我们可以配置代理来转发API请求
                     return '/api';
-                } 
-                // 其他环境使用HTTP
-                else {
-                    console.log('🌐 检测到其他环境，使用HTTP地址');
+                } else if (isHttps) {
+                    // 其他HTTPS环境，尝试HTTPS
+                    return `https://${serverHost}/api`;
+                } else {
+                    // HTTP环境使用HTTP
                     return `http://${serverHost}/api`;
                 }
             })(),
             timeout: 10000, // 10秒超时
             // 添加备用URL配置，用于回退
             fallbackUrls: [
+                '/api',  // Netlify代理路径
                 'http://124.223.222.214:3000/api',  // 原始HTTP地址
-                '/api'  // Netlify代理路径
+                'https://124.223.222.214:3000/api'  // HTTPS地址（如果服务器支持）
             ]
         };
         
