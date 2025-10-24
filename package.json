@@ -1,23 +1,7 @@
 {
-  "name": "yymap-netlify",
+  "name": "campus-map",
   "version": "1.0.0",
-  "description": "杨园中学地图系统 - Netlify部署版本",
-  "main": "index.html",
-  "scripts": {
-    "build": "echo 'No build step required'",
-    "dev": "netlify dev",
-    "deploy": "netlify deploy --prod"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "netlify-cli": "^15.0.0"
-  },
-  "keywords": [
-    "map",
-    "school",
-    "netlify",
-    "functions"
-  ],
-  "author": "Your Name",
-  "license": "MIT"
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
 }
