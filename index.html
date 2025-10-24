@@ -597,82 +597,48 @@
         }
     </style>
     
-    <!-- 引入 axios - 多个备用CDN -->
+    <!-- 引入 axios -->
+    <script src="js/axios.min.js"></script>
     <script>
-        // 首先检查axios是否已经加载
-        if (typeof axios === 'undefined') {
-            // 创建多个备用CDN的加载函数
-            function loadAxiosFromCDN() {
-                const cdnList = [
-                    'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
-                    'https://unpkg.com/axios/dist/axios.min.js',
-                    'https://cdn.skypack.dev/axios/dist/axios.min.js'
-                ];
-                
-                let currentIndex = 0;
-                
-                function tryLoadCDN() {
-                    if (currentIndex >= cdnList.length) {
-                        console.error('所有CDN都无法加载axios，将使用fetch作为备用方案');
-                        // 如果所有CDN都失败，我们将在代码中使用fetch替代
-                        window.axios = {
-                            request: async function(config) {
-                                try {
-                                    const response = await fetch(config.url, {
-                                        method: config.method || 'GET',
-                                        headers: config.headers || {},
-                                        body: config.data ? JSON.stringify(config.data) : undefined
-                                    });
-                                    
-                                    if (!response.ok) {
-                                        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
-                                        error.response = {
-                                            status: response.status,
-                                            statusText: response.statusText
-                                        };
-                                        throw error;
-                                    }
-                                    
-                                    let data;
-                                    try {
-                                        data = await response.json();
-                                    } catch (e) {
-                                        data = await response.text();
-                                    }
-                                    
-                                    return { data: data };
-                                } catch (error) {
-                                    if (!error.response) {
-                                        error.request = true;
-                                    }
-                                    throw error;
-                                }
-                            }
+        // 创建axios备用方案
+        window.axios = window.axios || {
+            request: async function(config) {
+                try {
+                    const response = await fetch(config.url, {
+                        method: config.method || 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...config.headers
+                        },
+                        body: config.data ? JSON.stringify(config.data) : undefined
+                    });
+                    
+                    if (!response.ok) {
+                        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
+                        error.response = {
+                            status: response.status,
+                            statusText: response.statusText
                         };
-                        return;
+                        throw error;
                     }
                     
-                    const script = document.createElement('script');
-                    script.src = cdnList[currentIndex];
-                    script.onload = function() {
-                        console.log(`✅ 成功从CDN加载axios: ${cdnList[currentIndex]}`);
-                    };
-                    script.onerror = function() {
-                        console.warn(`❌ CDN加载失败: ${cdnList[currentIndex]}`);
-                        currentIndex++;
-                        tryLoadCDN();
-                    };
-                    document.head.appendChild(script);
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = await response.text();
+                    }
+                    
+                    return { data: data };
+                } catch (error) {
+                    if (!error.response) {
+                        error.request = true;
+                    }
+                    throw error;
                 }
-                
-                tryLoadCDN();
             }
-            
-            // 立即尝试加载
-            loadAxiosFromCDN();
-        }
+        };
     </script>
-    <script src="js/axios.min.js"></script>
 </head>
 <body>
     <div class="container viewer-mode" id="app-container">
@@ -864,15 +830,7 @@
             updateModeDisplay();
             enableAdminAccess(); // 启用管理员访问功能
             
-            // 确保axios加载完成后再加载数据
-            try {
-                await ensureAxiosAvailable();
-                console.log('✅ axios已准备就绪，开始加载数据');
-            } catch (error) {
-                console.warn('⚠️ axios加载可能有问题，但仍会尝试加载数据:', error);
-            }
-            
-            // 加载数据（无论axios是否可用都会尝试）
+            // 加载数据
             loadData();
         }
         
@@ -2147,172 +2105,50 @@
         }
         
         
-        // 检查axios是否可用的工具函数
+        // 简化的axios可用性检查
         function ensureAxiosAvailable() {
-            return new Promise((resolve, reject) => {
-                if (typeof axios !== 'undefined') {
-                    resolve(axios);
-                    return;
-                }
-                
-                // 等待axios加载，最多等待10秒
-                let attempts = 0;
-                const maxAttempts = 50; // 50次 * 200ms = 10秒
-                
-                const checkAxios = () => {
-                    attempts++;
-                    if (typeof axios !== 'undefined') {
-                        resolve(axios);
-                    } else if (attempts >= maxAttempts) {
-                        // 如果axios不可用，创建一个基于fetch的兼容层
-                        console.warn('axios加载超时，使用fetch作为备用');
-                        const fetchAxios = {
-                            request: async function(config) {
-                                try {
-                                    const response = await fetch(config.url, {
-                                        method: config.method || 'GET',
-                                        headers: config.headers || {},
-                                        body: config.data ? JSON.stringify(config.data) : undefined
-                                    });
-                                    
-                                    if (!response.ok) {
-                                        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
-                                        error.response = {
-                                            status: response.status,
-                                            statusText: response.statusText
-                                        };
-                                        throw error;
-                                    }
-                                    
-                                    let data;
-                                    try {
-                                        data = await response.json();
-                                    } catch (e) {
-                                        // 如果不是JSON响应，返回文本
-                                        data = await response.text();
-                                    }
-                                    
-                                    return { data: data };
-                                } catch (error) {
-                                    if (!error.response) {
-                                        // 网络错误或其他错误
-                                        error.request = true;
-                                    }
-                                    throw error;
-                                }
-                            }
-                        };
-                        resolve(fetchAxios);
-                    } else {
-                        setTimeout(checkAxios, 200);
-                    }
-                };
-                
-                checkAxios();
-            });
+            return Promise.resolve(window.axios);
         }
 
-        // API 工具函数 - 使用 axios 或 fetch 备用
+        // 简化的API请求函数
         async function apiRequest(endpoint, options = {}) {
-            // 动态构建URL并发送请求
-            async function makeRequest(baseUrl) {
-                const url = `${baseUrl}${endpoint}`;
+            const axiosInstance = await ensureAxiosAvailable();
+            const url = `${API_CONFIG.baseUrl}${endpoint}`;
+            
+            console.log(`🔄 API请求: ${options.method || 'GET'} ${url}`);
+            
+            try {
+                const config = {
+                    method: options.method || 'GET',
+                    url: url,
+                    timeout: API_CONFIG.timeout,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        ...options.headers
+                    },
+                    withCredentials: false,
+                    ...options
+                };
                 
-                console.log(`🔄 API请求: ${options.method || 'GET'} ${url}`);
+                if (options.data) {
+                    config.data = options.data;
+                }
                 
-                try {
-                    // 确保axios可用
-                    const axiosInstance = await ensureAxiosAvailable();
-                    
-                    const axiosConfig = {
-                        method: options.method || 'GET',
-                        url: url,
-                        timeout: API_CONFIG.timeout,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            ...options.headers
-                        },
-                        // 对于跨域请求的重要设置
-                        withCredentials: false,
-                        ...options
-                    };
-                    
-                    // 如果有请求体数据，添加到配置中
-                    if (options.data) {
-                        axiosConfig.data = options.data;
-                    } else if (options.body) {
-                        // 向后兼容：如果使用的是 body，则将其转换为 data
-                        axiosConfig.data = JSON.parse(options.body);
-                    }
-                    
-                    const response = await axiosInstance.request(axiosConfig);
-                    console.log(`✅ API响应:`, response.data);
-                    return response.data;
-                } catch (error) {
-                    // 统一的错误处理
-                    if (error.response) {
-                        // 服务器响应了错误状态码
-                        throw new Error(`HTTP错误: ${error.response.status} ${error.response.statusText}`);
-                    } else if (error.request) {
-                        // 请求已发送但没有收到响应
-                        throw new Error(`网络错误: 无法连接到服务器`);
-                    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                        // fetch相关错误
-                        throw new Error(`网络错误: ${error.message}`);
-                    } else {
-                        // 其他错误
-                        throw new Error(`请求配置错误: ${error.message}`);
-                    }
+                const response = await axiosInstance.request(config);
+                console.log(`✅ API响应:`, response.data);
+                return response.data;
+            } catch (error) {
+                console.error(`❌ API请求失败:`, error.message);
+                
+                if (error.response) {
+                    throw new Error(`HTTP错误: ${error.response.status} ${error.response.statusText}`);
+                } else if (error.request) {
+                    throw new Error(`网络错误: 无法连接到服务器`);
+                } else {
+                    throw new Error(`请求错误: ${error.message}`);
                 }
             }
-            
-            // 收集所有可能的URL
-            const urlsToTry = [API_CONFIG.baseUrl];
-            if (API_CONFIG.fallbackUrls) {
-                urlsToTry.push(...API_CONFIG.fallbackUrls.filter(url => url !== API_CONFIG.baseUrl));
-            }
-            
-            let lastError = null;
-            
-            // 依次尝试所有URL
-            for (const baseUrl of urlsToTry) {
-                try {
-                    console.log(`🔄 尝试请求: ${baseUrl}${endpoint}`);
-                    return await makeRequest(baseUrl);
-                } catch (error) {
-                    console.error(`❌ 请求失败 (${baseUrl}):`, error.message);
-                    lastError = error;
-                    
-                    // axios 的跨域错误检测
-                    const errorMessage = error.message.toLowerCase();
-                    if (errorMessage.includes('network error') || 
-                        errorMessage.includes('cors') || 
-                        errorMessage.includes('mixed content') || 
-                        errorMessage.includes('blocked') ||
-                        errorMessage.includes('failed to fetch') ||
-                        error.code === 'ERR_NETWORK') {
-                        console.log('🔄 检测到跨域相关错误，尝试下一个URL...');
-                        continue;
-                    } else {
-                        // 如果是其他类型的错误（比如404），可能不需要继续尝试
-                        console.log('🔄 检测到其他类型错误，但仍尝试下一个URL...');
-                    }
-                }
-            }
-            
-            // 所有URL都失败了
-            const errorMessage = `所有API请求都失败了。最后错误: ${lastError?.message}\n\n这通常是因为:\n` +
-                `1. 跨域（CORS）配置问题 - 服务器需要设置正确的CORS头\n` +
-                `2. Mixed Content问题 - HTTPS页面无法请求HTTP资源\n` +
-                `3. 网络连接问题\n\n` +
-                `解决方案:\n` +
-                `1. 在服务器端配置CORS头: Access-Control-Allow-Origin: *\n` +
-                `2. 为API服务器配置HTTPS证书\n` +
-                `3. 或者使用Netlify Functions作为代理`;
-            
-            console.error('❌ 所有API请求失败:', errorMessage);
-            throw new Error(errorMessage);
         }
         
         // 从API获取标记点数据
