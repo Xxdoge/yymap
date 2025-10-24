@@ -1,71 +1,106 @@
 const fetch = require('node-fetch');
 
 exports.handler = async function(event, context) {
-  // 允许CORS
+  console.log('🚀 Markers function started');
+  
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400'
+    'Content-Type': 'application/json'
   };
 
-  // 预检请求处理
+  // 处理预检请求
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
+    return { statusCode: 200, headers, body: '' };
   }
 
   const apiUrl = `http://124.223.222.214:3000/api/markers`;
-  
+  console.log('🔗 Fetching from:', apiUrl);
+
   try {
-    console.log(`🔄 代理请求: ${event.httpMethod} ${apiUrl}`);
-    
-    let options = {
+    // 更短的超时时间用于测试
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Fetch timeout reached');
+      controller.abort();
+    }, 5000);
+
+    const fetchOptions = {
       method: event.httpMethod,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Netlify-Proxy/1.0'
+        'User-Agent': 'Netlify-Function/1.0'
       },
-      timeout: 10000 // 10秒超时
+      signal: controller.signal,
+      // 添加更多fetch选项
+      redirect: 'follow',
+      follow: 10
     };
 
-    // 如果是POST/PUT请求，添加body
-    if ((event.httpMethod === 'POST' || event.httpMethod === 'PUT') && event.body) {
-      options.body = event.body;
+    // 添加请求体（如果是POST）
+    if (event.httpMethod === 'POST' && event.body) {
+      fetchOptions.body = event.body;
+      console.log('📦 Request body:', event.body.substring(0, 200));
     }
 
-    const response = await fetch(apiUrl, options);
-    
+    console.log('🔄 Starting fetch request...');
+    const response = await fetch(apiUrl, fetchOptions);
+    clearTimeout(timeoutId);
+
+    console.log('✅ Backend response status:', response.status);
+    console.log('📋 Response headers:', JSON.stringify(Object.fromEntries(response.headers)));
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      console.log('❌ Backend error response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
-    
+
     const data = await response.json();
-    
-    console.log(`✅ 代理响应: ${response.status}`);
+    console.log('🎉 Successfully fetched data, count:', data.length || data.data?.length);
 
     return {
-      statusCode: response.status,
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    };
-  } catch (error) {
-    console.error('❌ 代理请求失败:', error.message);
-    
-    return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
+        success: true,
+        data: data,
+        timestamp: new Date().toISOString()
+      })
+    };
+
+  } catch (error) {
+    console.error('💥 Fetch error details:');
+    console.error('Name:', error.name);
+    console.error('Message:', error.message);
+    console.error('Code:', error.code);
+    console.error('Stack:', error.stack);
+
+    let statusCode = 502;
+    let userMessage = '网络请求失败';
+
+    if (error.name === 'AbortError') {
+      statusCode = 504;
+      userMessage = '请求超时，服务器响应时间过长';
+    } else if (error.message.includes('ECONNREFUSED')) {
+      statusCode = 503;
+      userMessage = '无法连接到服务器';
+    } else if (error.message.includes('ENOTFOUND')) {
+      statusCode = 502;
+      userMessage = '服务器地址无法解析';
+    }
+
+    return {
+      statusCode: statusCode,
+      headers,
+      body: JSON.stringify({
         success: false,
-        error: '代理请求失败',
-        message: error.message 
+        error: userMessage,
+        details: error.message,
+        type: error.name,
+        url: apiUrl,
+        timestamp: new Date().toISOString()
       })
     };
   }
